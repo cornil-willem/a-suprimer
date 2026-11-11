@@ -164,6 +164,7 @@ main{padding-bottom:calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom,0px
 .chip.off{background:transparent;border:1px dashed var(--line)}
 .banner{border-radius:var(--radius);padding:12px 14px;background:var(--surface);border:1px dashed var(--carton-edge);display:grid;gap:8px}
 .banner p{margin:0}
+.banner.install{border-style:solid;border-color:var(--accent)}
 
 /* Listes de cartons */
 .list-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
@@ -272,6 +273,13 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
   <main>
     <!-- PARTIE -->
     <section class="view" id="view-partie" aria-label="Partie">
+      <div class="banner install" id="install-banner" hidden>
+        <p class="install-text"></p>
+        <div class="row-btns">
+          <button type="button" class="btn small primary install-btn" hidden>Installer l'appli</button>
+          <button type="button" class="btn small ghost" id="btn-install-later">Plus tard</button>
+        </div>
+      </div>
       <div class="modes" role="group" aria-label="On joue pour">
         <button type="button" data-mode="quine">Quine</button>
         <button type="button" data-mode="double">Double quine</button>
@@ -385,6 +393,12 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
       <div class="panel" id="engine-panel">
         <h2>Lecture des photos</h2>
         <div id="engine-box"><p class="note">Recherche du service d'analyse…</p></div>
+      </div>
+
+      <div class="panel" id="install-panel" hidden>
+        <h2>Installer l'appli</h2>
+        <p class="note install-text"></p>
+        <div class="row-btns"><button type="button" class="btn small primary install-btn" hidden>Installer l'appli</button></div>
       </div>
 
       <div class="panel">
@@ -1372,6 +1386,32 @@ function renderSendLink() {
   if (!a.hidden) a.href = `${APP_URL}#import=${packCards(cards)}`;
 }
 
+/* ---------- Installation sur le téléphone ---------- */
+let installEvent = null;
+const INSTALL_LATER_KEY = 'loto-cartons:install-later';
+function isInstalled() {
+  try { return matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true; } catch (e) { return false; }
+}
+function installText() {
+  const ua = navigator.userAgent;
+  if (installEvent) return 'Installe Loto Cartons sur ton écran d\'accueil : elle s\'ouvrira en plein écran, comme une appli.';
+  if (/iPhone|iPad|iPod/.test(ua)) return /CriOS|FxiOS|EdgiOS|Brave/.test(ua)
+    ? 'Pour l\'installer : ouvre cette adresse dans Safari, touche le bouton Partager (carré avec une flèche), puis « Sur l\'écran d\'accueil ».'
+    : 'Pour l\'installer : touche le bouton Partager (carré avec une flèche), puis « Sur l\'écran d\'accueil ».';
+  return 'Pour l\'installer : touche le menu ⋮ du navigateur, puis « Installer l\'application » ou « Ajouter à l\'écran d\'accueil ». Si ce choix n\'apparaît pas, touche d\'abord « Ouvrir dans Brave » (ou « Ouvrir dans Chrome »), puis recommence.';
+}
+function renderInstall() {
+  const show = !IN_CLAUDE && !isInstalled();
+  let later = 0;
+  try { later = Number(localStorage.getItem(INSTALL_LATER_KEY)) || 0; } catch (e) { /* bloqué */ }
+  $('#install-banner').hidden = !show || Date.now() - later < 3 * 864e5;
+  $('#install-panel').hidden = !show;
+  $$('.install-text').forEach(el => { el.textContent = installText(); });
+  $$('.install-btn').forEach(b => { b.hidden = !installEvent; });
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvent = e; renderInstall(); });
+window.addEventListener('appinstalled', () => { installEvent = null; renderInstall(); toast('Appli installée : ouvre-la depuis ton écran d\'accueil'); });
+
 /* ---------- Visionneuse de photo ---------- */
 function jobThumb(id) { const j = id && jobs.find(x => x.id === id); return j && j.thumb ? j.thumb : ''; }
 const photo = { img: null, rot: 0, zoom: false };
@@ -1605,6 +1645,17 @@ $('#btn-reset-cards').addEventListener('click', async () => {
   toast('Tous les cartons sont supprimés');
 });
 document.addEventListener('visibilitychange', updateWake);
+$$('.install-btn').forEach(b => b.addEventListener('click', async () => {
+  if (!installEvent) return;
+  const ev = installEvent;
+  installEvent = null;
+  try { await ev.prompt(); await ev.userChoice; } catch (e) { /* refusé */ }
+  renderInstall();
+}));
+$('#btn-install-later').addEventListener('click', () => {
+  try { localStorage.setItem(INSTALL_LATER_KEY, String(Date.now())); } catch (e) { /* bloqué */ }
+  renderInstall();
+});
 $('#photo-rotate').addEventListener('click', () => { photo.rot = (photo.rot + 1) % 4; drawPhoto(); });
 $('#photo-zoom').addEventListener('click', () => { photo.zoom = !photo.zoom; drawPhoto(); });
 $('#photo-close').addEventListener('click', () => { $('#photo').hidden = true; });
@@ -1620,6 +1671,7 @@ if (importMatch) {
   showView(location.hash.slice(1) || 'partie');
   renderAll();
 }
+renderInstall();
 Engine.init();
 Cloud.init();
 })();
