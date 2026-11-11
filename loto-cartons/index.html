@@ -212,6 +212,7 @@ main{padding-bottom:calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom,0px
 .job.error .job-text span,.job.empty .job-text span{color:var(--warn)}
 .job.done .job-text span{color:var(--win)}
 .job.done.warn .job-text span{color:var(--warn)}
+.job.dup{opacity:.7}
 .thumb-btn{border:0;padding:0;background:none;border-radius:8px;display:block}
 .job-actions{display:flex;gap:6px}
 .spinner{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite;display:inline-block;vertical-align:-3px;margin-right:6px}
@@ -960,6 +961,7 @@ function renderCardsView() {
 const jobs = [];
 let jobSeq = 0, running = 0, queuePaused = '';
 const jobBase = Date.now(); // identifiants uniques d'une session à l'autre
+const seenPhotos = new Map(); // empreinte du fichier -> nom de la photo déjà envoyée
 function addFiles(fileList) {
   const files = [...fileList].filter(f => f && (f.type.startsWith('image/') || !f.type));
   if (!files.length) return;
@@ -980,8 +982,21 @@ function pump() {
     runJob(job).finally(() => { running--; renderQueue(); pump(); });
   }
 }
+// Empreinte du fichier : la même photo choisie deux fois n'est pas renvoyée à Claude.
+async function photoHash(file) {
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) { return ''; }
+}
 async function runJob(job) {
   try {
+    if (job.file && !job.hash) {
+      job.hash = await photoHash(job.file);
+      const first = job.hash && seenPhotos.get(job.hash);
+      if (first) { job.status = 'dup'; job.msg = `Même photo que ${first} : ignorée`; job.file = null; return; }
+      if (job.hash) seenPhotos.set(job.hash, job.name);
+    }
     if (!job.blob) {
       job.blob = await prepareImage(job.file);
       job.thumb = URL.createObjectURL(job.blob);
@@ -1161,7 +1176,9 @@ const Engine = {
     const max = this.limits && this.limits.images && this.limits.images.maxInputBytes;
     if (max && blob.size > max) throw userErr('Photo trop lourde. Reprends-la de plus près.');
     try {
-      const opts = { images: blob, modelTier: 'default' };
+      // Lecture des planches : la justesse compte plus que la vitesse, on prend le modèle le plus précis.
+      const tiers = this.limits && this.limits.modelTiers;
+      const opts = { images: blob, modelTier: !tiers || tiers.includes('complex') ? 'complex' : 'default' };
       if (fresh) opts.cache = false;
       return await this.sample.json(PROMPT, opts);
     } catch (e) {
