@@ -21,6 +21,20 @@ Appli mobile (PWA) pour jouer au loto avec beaucoup de cartons sans rien rater.
 Carton français classique : 3 lignes × 9 colonnes, 5 numéros par ligne, de 1 à 90.
 La colonne d'un numéro sert à repérer les erreurs de lecture (ex. 23 et 27 sur la même ligne).
 
+## Installer l'appli sur le téléphone
+
+Adresse : **https://loto-cartons.vercel.app**
+
+- **Android (Chrome)** : ouvre l'adresse, menu ⋮ → « Installer l'application »
+  (ou « Ajouter à l'écran d'accueil »).
+- **iPhone (Safari)** : ouvre l'adresse, bouton Partager → « Sur l'écran d'accueil ».
+
+Lecture des photos dans l'appli installée :
+- sans clé : scanne les cartons dans la page Loto Cartons sur claude.ai,
+  touche « Envoyer vers l'appli du téléphone », puis dans l'appli « Coller mes cartons »
+  (sur Android, le lien ouvre directement l'appli) ;
+- avec une clé API Anthropic (Réglages) : lecture directe dans l'appli.
+
 ## Utiliser l'appli
 
 L'appli tient dans `index.html` (aucune compilation). Deux façons de l'ouvrir :
