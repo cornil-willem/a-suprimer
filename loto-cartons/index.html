@@ -211,6 +211,8 @@ main{padding-bottom:calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom,0px
 .job-text span{font-size:.84rem;color:var(--muted)}
 .job.error .job-text span,.job.empty .job-text span{color:var(--warn)}
 .job.done .job-text span{color:var(--win)}
+.job.done.warn .job-text span{color:var(--warn)}
+.thumb-btn{border:0;padding:0;background:none;border-radius:8px;display:block}
 .job-actions{display:flex;gap:6px}
 .spinner{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite;display:inline-block;vertical-align:-3px;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -249,6 +251,10 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
 .win-more{margin:0;color:var(--muted);font-size:.9rem}
 .dialog-actions{display:flex;flex-wrap:wrap;gap:8px}
 .dialog-actions .btn{flex:1 1 auto}
+.photo-box{max-width:960px;max-height:100%;grid-template-rows:auto minmax(0,1fr) auto;padding:12px}
+.photo-title{font-size:1rem}
+.photo-scroll{overflow:auto;min-height:0;max-height:calc(100dvh - 190px);border-radius:10px;background:var(--surface-2)}
+#photo-canvas{display:block;max-width:none}
 .toast{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + 14px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);z-index:30;max-width:calc(100% - 32px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
@@ -444,6 +450,18 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
   </div>
 </div>
 
+<div class="overlay" id="photo" role="dialog" aria-modal="true" aria-labelledby="photo-title" hidden>
+  <div class="dialog photo-box">
+    <h2 class="photo-title" id="photo-title">Photo</h2>
+    <div class="photo-scroll"><canvas id="photo-canvas"></canvas></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn" id="photo-rotate">Pivoter</button>
+      <button type="button" class="btn" id="photo-zoom">Zoomer</button>
+      <button type="button" class="btn primary" id="photo-close">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -498,6 +516,8 @@ function cleanCard(c) {
     example: c.example === true,
     doubt: Array.isArray(c.doubt) ? c.doubt.map(Number).filter(validNum) : [],
     source: c.source ? String(c.source).slice(0, 80) : '',
+    jobId: Number(c.jobId) || 0,
+    sheet: c.sheet === true,
   };
 }
 function normalize(s) {
@@ -569,7 +589,7 @@ function cartonHTML(card, drawnSet, { waiting = [], showDoubt = false } = {}) {
   }).join('')}</div>`;
 }
 function cardName(card) { return card.label || 'Carton sans nom'; }
-function serialHTML(card) { return card.numero ? `<span class="serial">N° ${esc(card.numero)}</span>` : ''; }
+function serialHTML(card) { return card.numero && !(card.label || '').includes(card.numero) ? `<span class="serial">N° ${esc(card.numero)}</span>` : ''; }
 
 /* ---------- Partie ---------- */
 let entry = '';
@@ -765,8 +785,20 @@ function cardWarnings(card, excludeId) {
   if (dup.length) w.push(`En double sur le carton : ${dup.join(', ')}`);
   const doubt = (card.doubt || []).filter(n => all.includes(n));
   if (doubt.length) w.push(`Lecture incertaine, à vérifier : ${doubt.join(', ')}`);
+  // Planche de 6 : un numéro ne peut pas être sur deux cartons de la même photo.
+  const others = card.sheet && card.jobId ? new Set(state.pending.filter(p => p !== card && p.sheet && p.jobId === card.jobId).flatMap(p => p.rows.flat())) : new Set();
+  const sheetDup = all.filter(n => others.has(n));
+  if (sheetDup.length) w.push(`Aussi sur un autre carton de la même planche : ${sheetDup.join(', ')}. L'un des deux est mal lu.`);
   const twin = findTwin(card, excludeId);
-  if (twin) w.push(`Mêmes numéros que « ${twin.label} », déjà enregistré`);
+  if (twin) w.push(`Mêmes numéros que « ${twin.label} », déjà enregistré : il sera ignoré`);
+  else {
+    const s = sig(card);
+    const i = state.pending.indexOf(card);
+    const earlier = i > 0 && state.pending.slice(0, i).find(p => sig(p) === s);
+    if (earlier) w.push(`Même carton que sur ${earlier.source || 'une autre photo'} : il sera ignoré`);
+    const sameNo = card.numero && state.cards.find(c => c.id !== excludeId && !c.example && c.numero === card.numero);
+    if (sameNo) w.push(`Le N° ${card.numero} est déjà enregistré avec d'autres numéros`);
+  }
   return w;
 }
 function parseRow(text) { return [...new Set(String(text).split(/[^0-9]+/).filter(Boolean).map(Number).filter(validNum))].sort((a, b) => a - b); }
@@ -793,7 +825,7 @@ function editorEl(card, kind) {
       ? '<button type="button" class="btn primary" data-act="save">Enregistrer</button><button type="button" class="btn ghost" data-act="cancel">Annuler</button>'
       : '<button type="button" class="btn primary" data-act="accept">Valider</button><button type="button" class="btn ghost" data-act="discard">Jeter</button>'}
     </div>
-    ${draft.source ? `<p class="src">Lu sur : ${esc(draft.source)}</p>` : ''}`;
+    ${draft.source ? `<p class="src">Lu sur : ${esc(draft.source)}${jobThumb(draft.jobId) ? ' · <button type="button" class="link" data-act="photo">Voir la photo</button>' : ''}</p>` : ''}`;
   const refresh = () => {
     $('.carton-slot', el).innerHTML = cartonHTML(draft, new Set(), { showDoubt: true });
     const w = cardWarnings(draft, kind === 'edit' ? card.id : null);
@@ -809,7 +841,10 @@ function editorEl(card, kind) {
     } else if (t.classList.contains('label-in')) draft.label = t.value.trim();
     else if (t.classList.contains('numero-in')) draft.numero = t.value.trim();
     refresh();
-    if (kind === 'pending') commit({ render: false });
+    if (kind === 'pending') {
+      commit({ render: false });
+      $$('#pending > .editor').forEach(other => { if (other !== el && other._refresh) other._refresh(); });
+    }
   });
   el.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !e.target.classList.contains('row-in')) return;
@@ -820,6 +855,7 @@ function editorEl(card, kind) {
   el.addEventListener('click', async e => {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (!act) return;
+    if (act === 'photo') { const url = jobThumb(draft.jobId); if (url) openPhoto(url, draft.source); return; }
     if (act === 'accept') acceptPending([card.id]);
     else if (act === 'discard') { state.pending = state.pending.filter(p => p.id !== card.id); commit(); }
     else if (act === 'cancel') { editingId = null; renderCardsView(); }
@@ -833,6 +869,7 @@ function editorEl(card, kind) {
       toast('Carton enregistré');
     }
   });
+  el._refresh = refresh;
   refresh();
   return el;
 }
@@ -845,13 +882,20 @@ function acceptPending(ids) {
     state.cards = state.cards.filter(c => !c.example);
     if (state.demo) { state.drawn = []; state.demo = false; state.mode = 'quine'; }
   }
+  let added = 0, skipped = 0;
   for (const p of ok) {
-    state.cards.push({ ...p, label: p.label || `Carton ${state.nextNo++}`, rows: p.rows.filter(r => r.length), doubt: [], active: true, example: false });
+    if (findTwin(p)) { skipped++; continue; }
+    const label = p.label || (p.numero ? `N° ${p.numero}` : `Carton ${state.nextNo++}`);
+    state.cards.push({ ...p, label, rows: p.rows.filter(r => r.length), doubt: [], sheet: false, jobId: 0, active: true, example: false });
+    added++;
   }
   const done = new Set(ok.map(p => p.id));
   state.pending = state.pending.filter(p => !done.has(p.id));
   commit();
-  toast(hadExamples ? `${plural(ok.length, 'carton validé', 'cartons validés')}, exemples retirés` : plural(ok.length, 'carton validé', 'cartons validés'));
+  const parts = [plural(added, 'carton validé', 'cartons validés')];
+  if (skipped) parts.push(plural(skipped, 'doublon ignoré', 'doublons ignorés'));
+  if (hadExamples) parts.push('exemples retirés');
+  toast(parts.join(', '));
 }
 
 /* ---------- Vue Cartons ---------- */
@@ -915,10 +959,11 @@ function renderCardsView() {
 /* ---------- File d'analyse des photos ---------- */
 const jobs = [];
 let jobSeq = 0, running = 0, queuePaused = '';
+const jobBase = Date.now(); // identifiants uniques d'une session à l'autre
 function addFiles(fileList) {
   const files = [...fileList].filter(f => f && (f.type.startsWith('image/') || !f.type));
   if (!files.length) return;
-  for (const file of files) jobs.push({ id: ++jobSeq, file, name: `Photo ${jobSeq}`, status: 'waiting', msg: 'En attente' });
+  for (const file of files) { jobSeq++; jobs.push({ id: jobBase + jobSeq, file, name: `Photo ${jobSeq}`, status: 'waiting', msg: 'En attente' }); }
   renderQueue();
   pump();
 }
@@ -948,9 +993,14 @@ async function runJob(job) {
     job.tries = (job.tries || 0) + 1;
     const found = parseCartons(result);
     if (!found.length) { job.status = 'empty'; job.msg = 'Aucun carton lu. Reprends la photo de plus près.'; return; }
-    for (const c of found) state.pending.push({ ...c, id: uid(), source: job.name });
+    const sheet = sheetCheck(found);
+    for (const c of found) {
+      state.pending.push({ ...c, id: uid(), source: job.name, jobId: job.id, sheet: !!sheet });
+    }
     job.status = 'done';
-    job.msg = `${plural(found.length, 'carton trouvé', 'cartons trouvés')}, à vérifier plus bas`;
+    job.warn = !!(sheet && !sheet.ok);
+    job.msg = plural(found.length, 'carton trouvé', 'cartons trouvés')
+      + (!sheet ? ', à vérifier plus bas' : sheet.ok ? ' · planche complète : les 90 numéros sont là' : ` · planche à vérifier : ${sheet.text}`);
     commit();
   } catch (err) {
     job.tries = (job.tries || 0) + 1;
@@ -959,6 +1009,17 @@ async function runJob(job) {
     if (err && err.pause) queuePaused = job.msg;
     if (!(err && err.userMessage)) console.error(err);
   }
+}
+// Une planche de 6 cartons contient chaque numéro de 1 à 90 une seule fois.
+function sheetCheck(cards) {
+  if (cards.length !== 6) return null;
+  const all = cards.flatMap(c => c.rows.flat());
+  const seen = new Set(all);
+  const missing = [];
+  for (let n = 1; n <= 90; n++) if (!seen.has(n)) missing.push(n);
+  const dup = [...new Set(all.filter((n, i) => all.indexOf(n) !== i))].sort((a, b) => a - b);
+  const text = [missing.length ? `manque ${missing.join(', ')}` : '', dup.length ? `en double ${dup.join(', ')}` : ''].filter(Boolean).join(' ; ');
+  return { ok: !missing.length && !dup.length, missing, dup, text };
 }
 function renderQueue() {
   const section = $('#jobs-section');
@@ -972,8 +1033,8 @@ function renderQueue() {
   paused.textContent = queuePaused ? `Analyse en pause : ${queuePaused}` : blocked ? 'Analyse indisponible ici. Ajoute une clé dans Réglages ou saisis les cartons à la main.' : '';
   $('#btn-retry-all').hidden = !jobs.some(j => j.status === 'error' || j.status === 'empty') && !queuePaused;
   $('#jobs').innerHTML = jobs.map(j => `
-    <li class="job ${j.status}" data-job="${j.id}">
-      ${j.thumb ? `<img class="thumb" src="${j.thumb}" alt="">` : '<span class="thumb"></span>'}
+    <li class="job ${j.status}${j.warn ? ' warn' : ''}" data-job="${j.id}">
+      ${j.thumb ? `<button type="button" class="thumb-btn" data-jact="view" aria-label="Voir ${esc(j.name)}"><img class="thumb" src="${j.thumb}" alt=""></button>` : '<span class="thumb"></span>'}
       <div class="job-text"><strong>${esc(j.name)}</strong><span>${j.status === 'running' ? '<i class="spinner" aria-hidden="true"></i>' : ''}${esc(j.msg)}</span></div>
       <div class="job-actions">${j.status === 'error' || j.status === 'empty' ? '<button type="button" class="btn small" data-jact="retry">Relire</button>' : ''}${j.status !== 'running' ? '<button type="button" class="btn small ghost" data-jact="remove" aria-label="Retirer la photo">×</button>' : ''}</div>
     </li>`).join('');
@@ -1012,13 +1073,18 @@ function parseCartons(res) {
 
 /* ---------- Analyse par Claude ---------- */
 const PROMPT = `Tu lis des photos de cartons de loto français.
-Un carton est une grille de 3 lignes et 9 colonnes. Chaque ligne contient en général 5 numéros de 1 à 90 ; les autres cases sont vides ou décorées.
-Colonne 1 : 1 à 9, colonne 2 : 10 à 19, colonne 3 : 20 à 29, … colonne 9 : 80 à 90. Sers-toi de la colonne pour trancher les chiffres ambigus (6/9, 1/7, 3/8).
-La photo peut montrer un seul carton ou plusieurs (par exemple une planche de 6), parfois de travers ou tournée.
-Pour chaque carton entièrement visible : lis les lignes de haut en bas, chaque ligne de gauche à droite, dans le sens de lecture du carton.
-Ignore les cartons coupés par le bord de la photo et tout ce qui n'est pas un numéro de case (logo, prix, date, nom de l'association).
+Un carton est une grille de 3 lignes et 9 colonnes. Chaque ligne contient 5 numéros de 1 à 90, tous de dizaines différentes ; les autres cases sont vides.
+Colonne 1 : 1 à 9, colonne 2 : 10 à 19, colonne 3 : 20 à 29, … colonne 9 : 80 à 90. Sers-toi de la colonne pour trancher les chiffres ambigus (6/9, 1/7, 3/8, 5/6).
+La photo montre un seul carton ou une planche de plusieurs cartons (souvent 6), souvent tournée d'un quart de tour. Trouve le sens du carton grâce au texte imprimé et à l'ordre des colonnes (1 à 9 d'un côté, 80 à 90 de l'autre).
+Une case contient un grand numéro et souvent le même numéro en petit dans un coin : c'est un rappel, compte-le une seule fois.
+Deux numéros qui semblent collés (ex. « 3347 ») sont dans deux cases voisines : 33 et 47. Suis les traits de la grille.
+Des jetons transparents peuvent couvrir des cases : lis le numéro à travers le jeton ou grâce au petit rappel. S'il reste incertain, mets-le quand même et ajoute-le à "douteux".
+Pour chaque carton : "lignes" = les 3 lignes de haut en bas, chaque ligne de gauche à droite, dans le sens du carton. "numero" = le numéro de série imprimé près du carton (ex. « 100 306 »), sinon chaîne vide.
+Lis aussi un carton un peu coupé par le bord de la photo et mets ses numéros incertains dans "douteux". Ignore seulement un carton dont il manque plus d'une colonne.
+Ignore tout ce qui n'est pas un numéro de case : nom de l'association, téléphone, prix, date.
+Vérifie avant de répondre : 15 numéros différents par carton, 5 par ligne ; sur une planche de 6 cartons, chaque numéro de 1 à 90 apparaît une seule fois.
 Réponds uniquement avec ce JSON, sans texte autour :
-{"cartons":[{"numero":"identifiant imprimé sur le carton, ou chaîne vide","lignes":[[n,n,n,n,n],[n,n,n,n,n],[n,n,n,n,n]],"douteux":[numéros dont tu n'es pas sûr]}]}
+{"cartons":[{"numero":"100 306","lignes":[[n,n,n,n,n],[n,n,n,n,n],[n,n,n,n,n]],"douteux":[]}]}
 Si aucun carton n'est lisible, réponds {"cartons":[]}.`;
 const CARD_SCHEMA = {
   type: 'object', additionalProperties: false, required: ['cartons'],
@@ -1230,6 +1296,36 @@ const Cloud = {
   },
 };
 
+/* ---------- Visionneuse de photo ---------- */
+function jobThumb(id) { const j = id && jobs.find(x => x.id === id); return j && j.thumb ? j.thumb : ''; }
+const photo = { img: null, rot: 0, zoom: false };
+async function openPhoto(url, name) {
+  const img = new Image();
+  img.src = url;
+  try { await img.decode(); } catch (e) { toast('Photo indisponible'); return; }
+  Object.assign(photo, { img, rot: 0, zoom: false });
+  $('#photo-title').textContent = name || 'Photo';
+  drawPhoto();
+  $('#photo').hidden = false;
+  $('#photo-close').focus();
+}
+function drawPhoto() {
+  const { img, rot, zoom } = photo;
+  if (!img) return;
+  const c = $('#photo-canvas');
+  const w = img.naturalWidth, h = img.naturalHeight, turned = rot % 2 === 1;
+  c.width = turned ? h : w;
+  c.height = turned ? w : h;
+  const g = c.getContext('2d');
+  g.save();
+  g.translate(c.width / 2, c.height / 2);
+  g.rotate(rot * Math.PI / 2);
+  g.drawImage(img, -w / 2, -h / 2);
+  g.restore();
+  c.style.width = zoom ? '220%' : '100%';
+  $('#photo-zoom').textContent = zoom ? 'Vue entière' : 'Zoomer';
+}
+
 /* ---------- Divers UI ---------- */
 let toastTimer = null;
 function toast(msg) {
@@ -1331,7 +1427,7 @@ $('#win-next').addEventListener('click', async () => {
   toast(`On joue maintenant : ${MODES[next].label}`);
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if (!$('#win').hidden) closeWin(); return; }
+  if (e.key === 'Escape') { if (!$('#win').hidden) closeWin(); if (!$('#photo').hidden) $('#photo').hidden = true; return; }
   if (currentView !== 'partie' || !$('#win').hidden || !$('#ask').hidden) return;
   const tag = (document.activeElement && document.activeElement.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -1356,6 +1452,7 @@ $('#jobs').addEventListener('click', e => {
   if (!btn) return;
   const job = jobs.find(j => j.id === Number(btn.closest('[data-job]').dataset.job));
   if (!job) return;
+  if (btn.dataset.jact === 'view') { if (job.thumb) openPhoto(job.thumb, job.name); return; }
   if (btn.dataset.jact === 'retry') { queuePaused = ''; retryJob(job); pump(); }
   else if (btn.dataset.jact === 'remove') { if (job.thumb) URL.revokeObjectURL(job.thumb); jobs.splice(jobs.indexOf(job), 1); renderQueue(); }
 });
@@ -1434,6 +1531,9 @@ $('#btn-reset-cards').addEventListener('click', async () => {
   toast('Tous les cartons sont supprimés');
 });
 document.addEventListener('visibilitychange', updateWake);
+$('#photo-rotate').addEventListener('click', () => { photo.rot = (photo.rot + 1) % 4; drawPhoto(); });
+$('#photo-zoom').addEventListener('click', () => { photo.zoom = !photo.zoom; drawPhoto(); });
+$('#photo-close').addEventListener('click', () => { $('#photo').hidden = true; });
 
 /* ---------- Démarrage ---------- */
 showView(location.hash.slice(1) || 'partie');
