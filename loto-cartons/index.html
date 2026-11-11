@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16213a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Loto">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<!-- APP:START -->
+<title>Loto Cartons</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Rubik:wght@500;700;800&display=swap">
+<style>
+/* Layout : appli téléphone en une colonne, barre du haut collante, onglets fixés en bas.
+   Les cartons sont dessinés comme de vrais cartons de loto jaunes, marqués de jetons translucides. */
+:root{
+  --bg:#eef1f7;
+  --surface:#ffffff;
+  --surface-2:#e3e8f2;
+  --ink:#16213a;
+  --muted:#58647f;
+  --line:#cfd6e4;
+  --accent:#2f56d6;
+  --accent-ink:#ffffff;
+  --carton:#fff0a3;
+  --carton-cell:#fffbe3;
+  --carton-blank:#f3df7c;
+  --carton-edge:#d6b941;
+  --carton-ink:#2b2410;
+  --jeton:rgba(225,29,96,.5);
+  --jeton-solid:#e11d60;
+  --on-jeton:#ffffff;
+  --ball-hi:#ff7aa5;
+  --ball-label:#ffffff;
+  --ball-label-ink:#16213a;
+  --win:#12804a;
+  --win-bg:#dcf4e6;
+  --warn:#a14a06;
+  --warn-bg:#fdefd8;
+  --danger:#c62828;
+  --scrim:rgba(14,19,34,.62);
+  --font-display:"Rubik", ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-body:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius:14px;
+  --tabbar-h:64px;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1322; --surface:#171e31; --surface-2:#232c44; --ink:#e7ebf5; --muted:#9aa5c0; --line:#2d3754;
+    --accent:#86a2ff; --accent-ink:#0e1322;
+    --carton:#3a3319; --carton-cell:#4a4220; --carton-blank:#2c2712; --carton-edge:#6e6024; --carton-ink:#fff4c6;
+    --jeton:rgba(255,77,136,.55); --jeton-solid:#ff4d88; --on-jeton:#1a0710; --ball-hi:#ff9cbd;
+    --ball-label:#fff8fb; --ball-label-ink:#16213a;
+    --win:#4ade80; --win-bg:#123524; --warn:#fbbf24; --warn-bg:#382a0d; --danger:#ff6b6b;
+    --scrim:rgba(0,0,0,.66);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1322; --surface:#171e31; --surface-2:#232c44; --ink:#e7ebf5; --muted:#9aa5c0; --line:#2d3754;
+  --accent:#86a2ff; --accent-ink:#0e1322;
+  --carton:#3a3319; --carton-cell:#4a4220; --carton-blank:#2c2712; --carton-edge:#6e6024; --carton-ink:#fff4c6;
+  --jeton:rgba(255,77,136,.55); --jeton-solid:#ff4d88; --on-jeton:#1a0710; --ball-hi:#ff9cbd;
+  --ball-label:#fff8fb; --ball-label-ink:#16213a;
+  --win:#4ade80; --win-bg:#123524; --warn:#fbbf24; --warn-bg:#382a0d; --danger:#ff6b6b;
+  --scrim:rgba(0,0,0,.66);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--font-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+img{max-width:100%}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0}
+.app{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Barre du haut */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px 10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-ball{width:30px;height:30px;border-radius:50%;background:var(--jeton-solid);display:grid;place-items:center;flex:none}
+.brand-ball::after{content:"";width:13px;height:13px;border-radius:50%;background:var(--ball-label)}
+.brand h1{font-size:1.2rem;font-weight:800;letter-spacing:-.01em}
+.top-meta{font-size:.82rem;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.top-meta strong{color:var(--ink);font-weight:600}
+
+main{padding-bottom:calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom,0px))}
+.view{display:grid;gap:16px}
+
+/* Onglets */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tabbar-inner{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);height:var(--tabbar-h)}
+.tab{border:0;background:none;display:grid;justify-items:center;align-content:center;gap:2px;font-size:.78rem;font-weight:600;color:var(--muted);position:relative}
+.tab svg{width:24px;height:24px}
+.tab[aria-current="page"]{color:var(--accent)}
+.tab .count{position:absolute;top:8px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--jeton-solid);color:var(--on-jeton);font-size:.7rem;line-height:18px;font-variant-numeric:tabular-nums}
+
+/* Boutons */
+.btn{border:1px solid transparent;border-radius:12px;padding:10px 14px;font-weight:600;background:var(--surface-2);display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
+.btn svg{width:20px;height:20px;flex:none}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;border-color:var(--line)}
+.btn.danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+.btn.small{min-height:36px;padding:6px 10px;font-size:.85rem;border-radius:10px}
+.btn:disabled{opacity:.5;cursor:default}
+.link{background:none;border:0;padding:0;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+
+/* Mode de jeu */
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:var(--surface-2);border-radius:999px}
+.modes button{border:0;background:none;border-radius:999px;padding:9px 6px;font-weight:600;font-size:.88rem;color:var(--muted);white-space:nowrap}
+.modes button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* Tirage */
+.draw{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px}
+.balls{display:flex;align-items:center;gap:14px;min-width:0}
+.ball{width:78px;aspect-ratio:1;border-radius:50%;flex:none;display:grid;place-items:center;background:radial-gradient(circle at 32% 28%,var(--ball-hi),var(--jeton-solid) 62%);box-shadow:inset -6px -8px 0 rgba(0,0,0,.14)}
+.ball span{width:60%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:var(--ball-label);color:var(--ball-label-ink);font:800 1.55rem/1 var(--font-display);font-variant-numeric:tabular-nums}
+.ball.empty{background:var(--surface-2);box-shadow:none}
+.ball.empty span{background:var(--bg);color:var(--muted);font-size:1.1rem}
+.ball.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.6) rotate(-40deg)}70%{transform:scale(1.08)}100%{transform:none}}
+.recent-wrap{min-width:0;display:grid;gap:4px}
+.recent-label{font-size:.78rem;color:var(--muted)}
+.recent{display:flex;flex-wrap:wrap;gap:6px}
+.mini{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--jeton-solid);font:700 .9rem/1 var(--font-display);font-variant-numeric:tabular-nums}
+.entry{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}
+.entry-display{min-height:54px;border-radius:12px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font:800 2rem/1 var(--font-display);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.entry-display.placeholder{font:500 .95rem var(--font-body);letter-spacing:0;color:var(--muted)}
+.entry-display.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.key{height:54px;border:0;border-radius:12px;background:var(--surface-2);font:700 1.45rem/1 var(--font-display);display:grid;place-items:center}
+.key:active{transform:scale(.96)}
+.key svg{width:24px;height:24px}
+.key.ok{background:var(--accent);color:var(--accent-ink);font-size:1.15rem}
+.draw-actions{display:flex;flex-wrap:wrap;gap:8px}
+.draw-actions .btn{flex:1 1 auto}
+
+/* Tableau 1-90 */
+.board{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.board button{aspect-ratio:1;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:600 .88rem/1 var(--font-display);font-variant-numeric:tabular-nums;padding:0}
+.board button.on{background:var(--jeton-solid);border-color:transparent;color:var(--on-jeton)}
+.board-wrap{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;gap:8px}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+
+/* Bandeaux d'état */
+.status{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:.82rem;font-weight:600;background:var(--surface-2);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;max-width:100%}
+.status .chip{white-space:normal;border-radius:12px}
+.chip.win{background:var(--win-bg);color:var(--win)}
+.chip.near{background:var(--warn-bg);color:var(--warn)}
+.chip.off{background:transparent;border:1px dashed var(--line)}
+.banner{border-radius:var(--radius);padding:12px 14px;background:var(--surface);border:1px dashed var(--carton-edge);display:grid;gap:8px}
+.banner p{margin:0}
+
+/* Listes de cartons */
+.list-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.list-head h2{font-size:1.05rem;font-weight:700}
+.filters{display:flex;gap:6px}
+.filters button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:.82rem;font-weight:600;color:var(--muted)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
+.gcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px;display:grid;gap:8px;min-width:0}
+.gcard.win{border-color:var(--win);box-shadow:0 0 0 2px var(--win)}
+.gcard.near{border-color:var(--warn)}
+.gcard.inactive{opacity:.6}
+.gcard-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.gcard-head strong{font-family:var(--font-display);font-weight:700}
+.gcard-head .serial{color:var(--muted);font-size:.82rem}
+.gcard-head .chip{margin-left:auto}
+.gcard-actions{display:flex;flex-wrap:wrap;gap:6px}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);padding:20px;text-align:center;display:grid;gap:10px;justify-items:center}
+.empty p{margin:0;color:var(--muted)}
+
+/* Le carton */
+.carton{background:var(--carton);border:2px solid var(--carton-edge);border-radius:10px;padding:5px;display:grid;gap:3px}
+.crow{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;border-radius:7px}
+.crow.free{display:flex;flex-wrap:wrap}
+.crow.free .cell{width:calc((100% - 24px)/9)}
+.crow.done{box-shadow:0 0 0 2px var(--win);background:var(--win-bg)}
+.cell{position:relative;aspect-ratio:1/1;display:grid;place-items:center;border-radius:6px;font:700 clamp(.82rem,3.4vw,1rem)/1 var(--font-display);color:var(--carton-ink);font-variant-numeric:tabular-nums}
+.cell.n{background:var(--carton-cell)}
+.cell.b{background:var(--carton-blank)}
+.cell.hit::after{content:"";position:absolute;inset:7%;border-radius:50%;background:var(--jeton)}
+.cell.wait{box-shadow:inset 0 0 0 2px var(--warn)}
+.cell.doubt{box-shadow:inset 0 0 0 2px var(--warn);background:var(--warn-bg);color:var(--warn)}
+
+/* Ajout de cartons */
+.add{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px}
+.add-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.add-grid .wide{grid-column:1/-1;min-height:56px;font-size:1.02rem}
+.note{font-size:.88rem;color:var(--muted);margin:0}
+.note.warn{color:var(--warn)}
+.jobs{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.job{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px}
+.job .thumb{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--surface-2)}
+.job-text{min-width:0;display:grid}
+.job-text strong{font-size:.92rem}
+.job-text span{font-size:.84rem;color:var(--muted)}
+.job.error .job-text span,.job.empty .job-text span{color:var(--warn)}
+.job.done .job-text span{color:var(--win)}
+.job-actions{display:flex;gap:6px}
+.spinner{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite;display:inline-block;vertical-align:-3px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Éditeur de carton */
+.editor{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:grid;gap:10px;min-width:0}
+.editor.has-warn{border-color:var(--warn)}
+.editor-head{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.in{width:100%;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+.in.big{font-family:var(--font-display);font-weight:600;letter-spacing:.03em}
+.rows-in{display:grid;gap:6px}
+.row-label{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:8px;font-size:.84rem;color:var(--muted);font-weight:600}
+.warns{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.warns li{background:var(--warn-bg);color:var(--warn);padding:6px 10px;border-radius:8px;font-size:.86rem}
+.editor-actions{display:flex;gap:8px;flex-wrap:wrap}
+.editor-actions .btn{flex:1 1 auto}
+.src{margin:0;font-size:.78rem;color:var(--muted)}
+
+/* Réglages */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px}
+.panel h2{font-size:1.02rem}
+.panel p{margin:0}
+.check{display:flex;align-items:flex-start;gap:10px}
+.check input{width:22px;height:22px;accent-color:var(--accent);flex:none;margin:0}
+.row-btns{display:flex;flex-wrap:wrap;gap:8px}
+textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
+.rules{margin:0;padding-left:18px;display:grid;gap:4px;color:var(--muted);font-size:.9rem}
+.rules strong{color:var(--ink)}
+
+/* Fenêtres */
+.overlay{position:fixed;inset:0;z-index:20;background:var(--scrim);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dialog{background:var(--surface);border-radius:22px;width:100%;max-width:460px;max-height:100%;overflow:auto;padding:20px;display:grid;gap:14px}
+.win-kicker{margin:0;color:var(--muted);font-weight:600}
+.win-title{font-size:clamp(2.2rem,11vw,3.2rem);font-weight:800;color:var(--jeton-solid);line-height:1;letter-spacing:-.02em;animation:pop .45s ease-out}
+.win-list{display:grid;gap:10px}
+.win-more{margin:0;color:var(--muted);font-size:.9rem}
+.dialog-actions{display:flex;flex-wrap:wrap;gap:8px}
+.dialog-actions .btn{flex:1 1 auto}
+.toast{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + 14px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);z-index:30;max-width:calc(100% - 32px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media (min-width:560px){.ball{width:92px}.ball span{font-size:1.8rem}}
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-ball" aria-hidden="true"></span><h1>Loto Cartons</h1></div>
+    <div class="top-meta" id="top-meta" aria-live="polite"></div>
+  </header>
+
+  <main>
+    <!-- PARTIE -->
+    <section class="view" id="view-partie" aria-label="Partie">
+      <div class="modes" role="group" aria-label="On joue pour">
+        <button type="button" data-mode="quine">Quine</button>
+        <button type="button" data-mode="double">Double quine</button>
+        <button type="button" data-mode="plein">Carton plein</button>
+      </div>
+
+      <div class="banner" id="demo-banner" hidden>
+        <p><strong>Cartons d'exemple.</strong> Tape <strong>40</strong> sur le pavé pour voir une quine. Ils disparaissent dès que tu valides ton premier vrai carton.</p>
+        <div><button type="button" class="btn small primary" data-goto="cartons">Ajouter mes cartons</button></div>
+      </div>
+
+      <div class="draw">
+        <div class="balls">
+          <div class="ball empty" id="last-ball" aria-live="polite"><span>–</span></div>
+          <div class="recent-wrap">
+            <span class="recent-label" id="recent-label">Aucun numéro sorti</span>
+            <div class="recent" id="recent"></div>
+          </div>
+        </div>
+        <div class="entry">
+          <div class="entry-display placeholder" id="entry-display">Tape le numéro annoncé</div>
+          <button type="button" class="btn ghost" id="btn-undo" title="Retirer le dernier numéro">Annuler</button>
+        </div>
+        <div class="keypad" id="keypad">
+          <button type="button" class="key" data-k="1">1</button>
+          <button type="button" class="key" data-k="2">2</button>
+          <button type="button" class="key" data-k="3">3</button>
+          <button type="button" class="key" data-k="del" aria-label="Effacer le chiffre"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1Z"/><path d="m17 9-6 6M11 9l6 6"/></svg></button>
+          <button type="button" class="key" data-k="4">4</button>
+          <button type="button" class="key" data-k="5">5</button>
+          <button type="button" class="key" data-k="6">6</button>
+          <button type="button" class="key" data-k="0">0</button>
+          <button type="button" class="key" data-k="7">7</button>
+          <button type="button" class="key" data-k="8">8</button>
+          <button type="button" class="key" data-k="9">9</button>
+          <button type="button" class="key ok" data-k="ok">OK</button>
+        </div>
+        <div class="draw-actions">
+          <button type="button" class="btn ghost small" id="btn-board" aria-expanded="false">Tableau 1–90</button>
+          <button type="button" class="btn ghost small" id="btn-new-game">Nouvelle partie</button>
+        </div>
+      </div>
+
+      <div class="board-wrap" id="board-wrap" hidden>
+        <p class="hint">Touche un numéro pour l'ajouter ou le retirer.</p>
+        <div class="board" id="board"></div>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <div class="list-head">
+        <h2 id="game-title">Mes cartons</h2>
+        <div class="filters" role="group" aria-label="Filtre">
+          <button type="button" data-filter="all">Tous</button>
+          <button type="button" data-filter="near">Proches</button>
+        </div>
+      </div>
+      <div class="cards" id="game-cards"></div>
+      <div class="empty" id="game-empty" hidden>
+        <p>Aucun carton en jeu pour l'instant.</p>
+        <button type="button" class="btn primary" data-goto="cartons">Ajouter mes cartons</button>
+      </div>
+    </section>
+
+    <!-- CARTONS -->
+    <section class="view" id="view-cartons" aria-label="Cartons" hidden>
+      <div class="add">
+        <div class="add-grid">
+          <button type="button" class="btn primary wide" id="btn-camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13.5" r="3.5"/></svg>Prendre une photo</button>
+          <button type="button" class="btn" id="btn-gallery"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>Choisir des photos</button>
+          <button type="button" class="btn" id="btn-manual"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Saisir à la main</button>
+        </div>
+        <p class="note" id="engine-note">Recherche du service d'analyse…</p>
+        <p class="note">Conseil : photo de face, bien éclairée, sans reflet. Une planche de plusieurs cartons passe aussi.</p>
+        <input type="file" id="file-camera" accept="image/*" capture="environment" hidden>
+        <input type="file" id="file-gallery" accept="image/*" multiple hidden>
+      </div>
+
+      <div id="jobs-section" hidden>
+        <div class="list-head">
+          <h2 id="jobs-title">Photos</h2>
+          <div class="row-btns">
+            <button type="button" class="btn small" id="btn-retry-all" hidden>Tout réessayer</button>
+            <button type="button" class="btn small ghost" id="btn-clear-jobs">Vider la liste</button>
+          </div>
+        </div>
+        <p class="note warn" id="queue-paused" hidden></p>
+        <ul class="jobs" id="jobs"></ul>
+      </div>
+
+      <div id="pending-section" hidden>
+        <div class="list-head">
+          <h2 id="pending-title">À vérifier</h2>
+          <button type="button" class="btn small primary" id="btn-accept-all">Tout valider</button>
+        </div>
+        <p class="note">Compare chaque carton avec le vrai. Corrige une ligne en tapant ses numéros séparés par un espace, un point ou une virgule.</p>
+        <div class="cards" id="pending"></div>
+      </div>
+
+      <div class="list-head">
+        <h2 id="saved-title">Mes cartons</h2>
+      </div>
+      <div class="cards" id="saved"></div>
+      <div class="empty" id="saved-empty" hidden><p>Pas encore de carton enregistré. Prends-les en photo ou saisis-les à la main.</p></div>
+    </section>
+
+    <!-- RÉGLAGES -->
+    <section class="view" id="view-reglages" aria-label="Réglages" hidden>
+      <div class="panel" id="engine-panel">
+        <h2>Lecture des photos</h2>
+        <div id="engine-box"><p class="note">Recherche du service d'analyse…</p></div>
+      </div>
+
+      <div class="panel">
+        <h2>Alertes</h2>
+        <label class="check"><input type="checkbox" id="set-sound"><span>Son à chaque numéro, fanfare quand un carton gagne</span></label>
+        <label class="check"><input type="checkbox" id="set-vibrate"><span>Vibration quand un carton gagne (Android)</span></label>
+        <label class="check"><input type="checkbox" id="set-wake"><span>Garder l'écran allumé pendant la partie</span></label>
+      </div>
+
+      <div class="panel">
+        <h2>Règles</h2>
+        <ul class="rules">
+          <li><strong>Quine</strong> : une ligne complète sur un carton.</li>
+          <li><strong>Double quine</strong> : deux lignes complètes sur le même carton.</li>
+          <li><strong>Carton plein</strong> : les trois lignes complètes.</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h2>Sauvegarde</h2>
+        <p class="note">Copie tes cartons pour les garder ailleurs, ou colle une sauvegarde puis touche Importer.</p>
+        <textarea class="in" id="backup" aria-label="Sauvegarde des cartons" spellcheck="false"></textarea>
+        <div class="row-btns">
+          <button type="button" class="btn small" id="btn-export">Copier mes cartons</button>
+          <button type="button" class="btn small" id="btn-import">Importer</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Effacer</h2>
+        <div class="row-btns">
+          <button type="button" class="btn small danger" id="btn-reset-game">Effacer les numéros sortis</button>
+          <button type="button" class="btn small danger" id="btn-reset-cards">Supprimer tous les cartons</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="tabbar" aria-label="Onglets">
+  <div class="tabbar-inner">
+    <button type="button" class="tab" data-tab="partie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>Partie</button>
+    <button type="button" class="tab" data-tab="cartons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M3 14h18M9 6v12M15 6v12"/></svg>Cartons<span class="count" id="tab-count" hidden></span></button>
+    <button type="button" class="tab" data-tab="reglages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Réglages</button>
+  </div>
+</nav>
+
+<div class="overlay" id="win" role="alertdialog" aria-modal="true" aria-labelledby="win-title" hidden>
+  <div class="dialog">
+    <p class="win-kicker" id="win-kicker"></p>
+    <h2 class="win-title" id="win-title"></h2>
+    <div class="win-list" id="win-list"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn primary" id="win-next"></button>
+      <button type="button" class="btn ghost" id="win-close">Continuer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ask" role="dialog" aria-modal="true" aria-labelledby="ask-text" hidden>
+  <div class="dialog">
+    <p id="ask-text"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn" id="ask-ok">Confirmer</button>
+      <button type="button" class="btn ghost" id="ask-cancel">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Outils ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const validNum = n => Number.isInteger(n) && n >= 1 && n <= 90;
+const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
+const byLabel = (a, b) => (a.label || '').localeCompare(b.label || '', 'fr', { numeric: true });
+const IN_CLAUDE = typeof window.claude === 'object' && window.claude !== null && typeof window.claude.use === 'function';
+
+const STORE_KEY = 'loto-cartons:v1';
+const KEY_KEY = 'loto-cartons:apikey';
+const MODES = {
+  quine:  { label: 'Quine',        rows: 1, win: 'QUINE !',        next: 'double' },
+  double: { label: 'Double quine', rows: 2, win: 'DOUBLE QUINE !', next: 'plein' },
+  plein:  { label: 'Carton plein', rows: 99, win: 'CARTON PLEIN !', next: null },
+};
+
+/* ---------- État ---------- */
+const EXAMPLES = [
+  [[3, 21, 40, 62, 85], [14, 33, 51, 70, 89], [8, 27, 46, 68, 90]],
+  [[5, 19, 36, 57, 74], [11, 28, 43, 66, 80], [2, 30, 49, 59, 77]],
+  [[9, 24, 38, 63, 81], [16, 35, 52, 71, 86], [6, 29, 44, 55, 79]],
+];
+function defaultState() {
+  return {
+    version: 1,
+    cards: EXAMPLES.map((rows, i) => ({ id: 'ex' + (i + 1), label: `Exemple ${i + 1}`, numero: '', rows, active: true, example: true, doubt: [] })),
+    pending: [],
+    drawn: [21, 62, 3, 85, 33, 57, 11, 70],
+    demo: true,
+    mode: 'quine',
+    nextNo: 1,
+    settings: { sound: true, vibrate: true, wake: true, filter: 'all' },
+    updatedAt: 0,
+  };
+}
+function cleanCard(c) {
+  if (!c || !Array.isArray(c.rows)) return null;
+  return {
+    id: String(c.id || uid()),
+    label: String(c.label || '').slice(0, 40),
+    numero: String(c.numero || '').slice(0, 30),
+    rows: c.rows.slice(0, 6).map(r => Array.isArray(r) ? [...new Set(r.map(Number).filter(validNum))] : []),
+    active: c.active !== false,
+    example: c.example === true,
+    doubt: Array.isArray(c.doubt) ? c.doubt.map(Number).filter(validNum) : [],
+    source: c.source ? String(c.source).slice(0, 80) : '',
+  };
+}
+function normalize(s) {
+  const d = defaultState();
+  if (!s || typeof s !== 'object') return d;
+  const out = { ...d, ...s, settings: { ...d.settings, ...(s.settings || {}) } };
+  out.cards = Array.isArray(s.cards) ? s.cards.map(cleanCard).filter(Boolean) : d.cards;
+  out.pending = Array.isArray(s.pending) ? s.pending.map(cleanCard).filter(Boolean) : [];
+  out.drawn = Array.isArray(s.drawn) ? [...new Set(s.drawn.map(Number).filter(validNum))] : [];
+  if (!MODES[out.mode]) out.mode = 'quine';
+  out.nextNo = Math.max(1, Number(out.nextNo) || 1);
+  out.demo = s.demo === true;
+  out.updatedAt = Number(s.updatedAt) || 0;
+  return out;
+}
+let state = defaultState();
+try { const raw = localStorage.getItem(STORE_KEY); if (raw) state = normalize(JSON.parse(raw)); } catch (e) { /* stockage indisponible */ }
+
+let saveTimer = null;
+function saveLocal() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* plein ou bloqué */ } }
+function commit({ render = true } = {}) {
+  state.updatedAt = Date.now();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveLocal, 200);
+  Cloud.schedule();
+  if (render) renderAll();
+}
+
+/* ---------- Logique du loto ---------- */
+// Colonne d'un numéro sur un carton français : 1-9, 10-19, …, 80-90.
+const colOf = n => (n === 90 ? 8 : Math.floor(n / 10));
+function layoutRow(row) {
+  const slots = Array(9).fill(null);
+  for (const n of row) { const c = colOf(n); if (slots[c] != null) return null; slots[c] = n; }
+  return slots;
+}
+function evalCard(card, drawnSet, mode) {
+  const rows = card.rows.filter(r => r.length);
+  const miss = rows.map(r => r.filter(n => !drawnSet.has(n)));
+  const k = Math.min(MODES[mode].rows, rows.length);
+  const done = miss.filter(m => m.length === 0).length;
+  const missing = miss.map(m => m.length).sort((a, b) => a - b).slice(0, k).reduce((s, x) => s + x, 0);
+  const waiting = missing === 1 ? [...new Set(miss.filter(m => m.length === 1).map(m => m[0]))].sort((a, b) => a - b) : [];
+  return { card, rows: rows.length, done, missing, win: rows.length > 0 && missing === 0, waiting };
+}
+function evaluateAll(mode = state.mode, drawnSet = new Set(state.drawn)) {
+  return state.cards.filter(c => c.active && c.rows.some(r => r.length)).map(c => evalCard(c, drawnSet, mode));
+}
+function winnerIds(mode = state.mode) { return new Set(evaluateAll(mode).filter(e => e.win).map(e => e.card.id)); }
+
+/* ---------- Carton (HTML) ---------- */
+function cartonHTML(card, drawnSet, { waiting = [], showDoubt = false } = {}) {
+  const wait = new Set(waiting);
+  const doubt = new Set(showDoubt ? card.doubt || [] : []);
+  const rows = card.rows.filter(r => r.length);
+  if (!rows.length) return `<div class="carton"><div class="crow">${'<span class="cell b"></span>'.repeat(9)}</div></div>`;
+  const cell = n => {
+    const cls = ['cell', 'n'];
+    if (drawnSet.has(n)) cls.push('hit');
+    if (wait.has(n)) cls.push('wait');
+    if (doubt.has(n)) cls.push('doubt');
+    return `<span class="${cls.join(' ')}">${n}</span>`;
+  };
+  return `<div class="carton">${rows.map(row => {
+    const done = drawnSet.size && row.every(n => drawnSet.has(n));
+    const slots = layoutRow(row);
+    const inner = slots ? slots.map(n => (n == null ? '<span class="cell b"></span>' : cell(n))).join('') : row.map(cell).join('');
+    return `<div class="crow${slots ? '' : ' free'}${done ? ' done' : ''}">${inner}</div>`;
+  }).join('')}</div>`;
+}
+function cardName(card) { return card.label || 'Carton sans nom'; }
+function serialHTML(card) { return card.numero ? `<span class="serial">N° ${esc(card.numero)}</span>` : ''; }
+
+/* ---------- Partie ---------- */
+let entry = '';
+let lastAddedPop = false;
+function renderEntry(msg) {
+  const el = $('#entry-display');
+  if (msg) { el.textContent = msg; el.classList.add('placeholder'); return; }
+  el.textContent = entry || 'Tape le numéro annoncé';
+  el.classList.toggle('placeholder', !entry);
+}
+function shakeEntry(msg) {
+  const el = $('#entry-display');
+  renderEntry(msg);
+  el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+  setTimeout(() => { if (!entry) renderEntry(); }, 1400);
+}
+function pressKey(k) {
+  if (k === 'del') { entry = entry.slice(0, -1); renderEntry(); return; }
+  if (k === 'ok') { submitEntry(); return; }
+  if (entry.length >= 2) entry = '';
+  entry += k;
+  if (entry.length === 2) { submitEntry(); return; }
+  renderEntry();
+}
+function submitEntry() {
+  if (!entry) { shakeEntry('Tape d\'abord un numéro'); return; }
+  const n = Number(entry);
+  entry = '';
+  if (!validNum(n)) { shakeEntry('Numéro entre 1 et 90'); return; }
+  addDrawn(n);
+}
+function addDrawn(n) {
+  if (state.drawn.includes(n)) { shakeEntry(`Le ${n} est déjà sorti`); return; }
+  const before = winnerIds();
+  state.drawn.push(n);
+  lastAddedPop = true;
+  renderEntry();
+  commit();
+  const fresh = evaluateAll().filter(e => e.win && !before.has(e.card.id));
+  if (fresh.length) announce(fresh, `Le ${n} fait gagner :`);
+  else Sound.blip();
+}
+function removeDrawn(n) {
+  const i = state.drawn.indexOf(n);
+  if (i < 0) return;
+  state.drawn.splice(i, 1);
+  commit();
+  toast(`${n} retiré`);
+}
+function setMode(mode) {
+  if (!MODES[mode] || mode === state.mode) return;
+  state.mode = mode;
+  commit();
+  const already = evaluateAll().filter(e => e.win);
+  if (already.length) announce(already, 'Déjà gagnant :');
+}
+
+function renderGame() {
+  const drawnSet = new Set(state.drawn);
+  const mode = MODES[state.mode];
+  $$('.modes [data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
+  $$('.filters [data-filter]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === state.settings.filter)));
+  $('#demo-banner').hidden = !state.cards.some(c => c.example);
+
+  const last = state.drawn[state.drawn.length - 1];
+  const ball = $('#last-ball');
+  ball.classList.toggle('empty', last == null);
+  ball.innerHTML = `<span>${last ?? '–'}</span>`;
+  ball.setAttribute('aria-label', last == null ? 'Aucun numéro sorti' : `Dernier numéro : ${last}`);
+  if (lastAddedPop) { ball.classList.remove('pop'); void ball.offsetWidth; ball.classList.add('pop'); lastAddedPop = false; }
+  const recent = state.drawn.slice(-9, -1).reverse();
+  $('#recent').innerHTML = recent.map(n => `<span class="mini">${n}</span>`).join('');
+  $('#recent-label').textContent = state.drawn.length ? `${plural(state.drawn.length, 'numéro sorti', 'numéros sortis')}${recent.length ? ' · précédents :' : ''}` : 'Aucun numéro sorti';
+  $('#btn-undo').disabled = !state.drawn.length;
+
+  const evals = evaluateAll();
+  evals.sort((a, b) => (b.win - a.win) || (a.missing - b.missing) || byLabel(a.card, b.card));
+  const winners = evals.filter(e => e.win);
+  const near = evals.filter(e => !e.win && e.missing === 1);
+  const inactive = state.cards.filter(c => !c.active).length;
+
+  const chips = [];
+  if (!evals.length) chips.push('<span class="chip">Aucun carton en jeu</span>');
+  else if (winners.length) chips.push(`<span class="chip win">${mode.label} : ${plural(winners.length, 'carton gagnant', 'cartons gagnants')}</span>`);
+  else chips.push(`<span class="chip">${mode.label} : pas encore de gagnant${evals.length ? ` · au mieux il manque ${evals[0].missing}` : ''}</span>`);
+  if (near.length) chips.push(`<span class="chip near">${plural(near.length, 'carton', 'cartons')} à un numéro</span>`);
+  if (inactive) chips.push(`<span class="chip off">${plural(inactive, 'carton', 'cartons')} hors jeu</span>`);
+  $('#status').innerHTML = chips.join('');
+
+  const shown = state.settings.filter === 'near' ? evals.filter(e => e.missing <= 2) : evals;
+  $('#game-title').textContent = state.settings.filter === 'near' ? `Proches du but (${shown.length})` : `Mes cartons (${evals.length})`;
+  $('#game-cards').innerHTML = shown.map(e => {
+    const tag = e.win ? `<span class="chip win">${mode.label}</span>`
+      : e.waiting.length ? `<span class="chip near">Attend ${e.waiting.join(' ou ')}</span>`
+      : `<span class="chip">Manque ${e.missing}</span>`;
+    const cls = e.win ? ' win' : e.waiting.length ? ' near' : '';
+    return `<article class="gcard${cls}"><div class="gcard-head"><strong>${esc(cardName(e.card))}</strong>${serialHTML(e.card)}${tag}</div>${cartonHTML(e.card, drawnSet, { waiting: e.waiting })}</article>`;
+  }).join('');
+  $('#game-empty').hidden = evals.length > 0;
+  if (!evals.length) $('#game-cards').innerHTML = '';
+  else if (!shown.length) $('#game-cards').innerHTML = '<div class="empty"><p>Aucun carton à 2 numéros ou moins du but.</p></div>';
+
+  if (!$('#board-wrap').hidden) renderBoard(drawnSet);
+}
+function renderBoard(drawnSet = new Set(state.drawn)) {
+  const b = $('#board');
+  if (!b.children.length) {
+    b.innerHTML = Array.from({ length: 90 }, (_, i) => `<button type="button" data-n="${i + 1}">${i + 1}</button>`).join('');
+  }
+  $$('button', b).forEach(btn => {
+    const on = drawnSet.has(Number(btn.dataset.n));
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
+}
+
+/* ---------- Annonce des gagnants ---------- */
+function announce(list, kicker) {
+  const drawnSet = new Set(state.drawn);
+  const mode = MODES[state.mode];
+  $('#win-kicker').textContent = kicker;
+  $('#win-title').textContent = mode.win;
+  const shown = list.slice(0, 6);
+  $('#win-list').innerHTML = shown.map(e => `<article class="gcard win"><div class="gcard-head"><strong>${esc(cardName(e.card))}</strong>${serialHTML(e.card)}</div>${cartonHTML(e.card, drawnSet)}</article>`).join('')
+    + (list.length > shown.length ? `<p class="win-more">et ${plural(list.length - shown.length, 'autre carton', 'autres cartons')}</p>` : '');
+  const next = $('#win-next');
+  if (mode.next) { next.textContent = `Passer au ${mode.next === 'double' ? 'jeu de la double quine' : 'carton plein'}`; next.dataset.next = mode.next; }
+  else { next.textContent = 'Nouvelle partie'; next.dataset.next = 'new'; }
+  $('#win').hidden = false;
+  $('#win-close').focus();
+  Sound.fanfare();
+  if (state.settings.vibrate) { try { navigator.vibrate && navigator.vibrate([250, 100, 250, 100, 500]); } catch (e) { /* non supporté */ } }
+}
+function closeWin() { $('#win').hidden = true; }
+
+/* ---------- Son ---------- */
+const Sound = (() => {
+  let ctx = null;
+  function audio() {
+    if (!state.settings.sound) return null;
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    } catch (e) { return null; }
+  }
+  function tone(a, freq, at, dur, type = 'sine', vol = .15) {
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, a.currentTime + at);
+    g.gain.linearRampToValueAtTime(vol, a.currentTime + at + .01);
+    g.gain.exponentialRampToValueAtTime(.001, a.currentTime + at + dur);
+    o.connect(g).connect(a.destination);
+    o.start(a.currentTime + at); o.stop(a.currentTime + at + dur + .05);
+  }
+  return {
+    blip() { const a = audio(); if (a) tone(a, 880, 0, .08, 'sine', .12); },
+    fanfare() { const a = audio(); if (a) [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(a, f, i * .13, .22, 'triangle', .2)); },
+  };
+})();
+
+/* ---------- Écran allumé ---------- */
+let wakeLock = null;
+async function updateWake() {
+  const want = state.settings.wake && currentView === 'partie' && document.visibilityState === 'visible';
+  try {
+    if (want && !wakeLock && navigator.wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!want && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) { wakeLock = null; }
+}
+
+/* ---------- Validation d'un carton ---------- */
+function sig(card) { return card.rows.flat().slice().sort((a, b) => a - b).join(','); }
+function findTwin(card, excludeId) {
+  const s = sig(card);
+  if (!s) return null;
+  return state.cards.find(c => c.id !== excludeId && !c.example && sig(c) === s) || null;
+}
+function cardWarnings(card, excludeId) {
+  const rows = card.rows.filter(r => r.length);
+  const w = [];
+  if (!rows.length) { w.push('Carton vide : tape au moins une ligne.'); return w; }
+  if (rows.length !== 3) w.push(`${plural(rows.length, 'ligne', 'lignes')} au lieu de 3`);
+  card.rows.forEach((r, i) => {
+    if (!r.length) return;
+    if (r.length !== 5) w.push(`Ligne ${i + 1} : ${plural(r.length, 'numéro', 'numéros')} au lieu de 5`);
+    if (!layoutRow(r)) w.push(`Ligne ${i + 1} : deux numéros de la même dizaine, l'un est sûrement mal lu`);
+  });
+  const all = rows.flat();
+  const dup = [...new Set(all.filter((n, i) => all.indexOf(n) !== i))];
+  if (dup.length) w.push(`En double sur le carton : ${dup.join(', ')}`);
+  const doubt = (card.doubt || []).filter(n => all.includes(n));
+  if (doubt.length) w.push(`Lecture incertaine, à vérifier : ${doubt.join(', ')}`);
+  const twin = findTwin(card, excludeId);
+  if (twin) w.push(`Mêmes numéros que « ${twin.label} », déjà enregistré`);
+  return w;
+}
+function parseRow(text) { return [...new Set(String(text).split(/[^0-9]+/).filter(Boolean).map(Number).filter(validNum))].sort((a, b) => a - b); }
+
+/* ---------- Éditeur de carton ---------- */
+function editorEl(card, kind) {
+  const draft = kind === 'edit' ? JSON.parse(JSON.stringify(card)) : card;
+  const el = document.createElement('article');
+  el.className = 'editor';
+  el.dataset.id = card.id;
+  el.dataset.kind = kind;
+  const nRows = Math.max(3, draft.rows.length);
+  el.innerHTML = `
+    <div class="editor-head">
+      <input class="in label-in" id="lbl-${card.id}" maxlength="40" placeholder="${kind === 'edit' ? esc(card.label) : 'Nom (auto)'}" value="${esc(draft.label)}" aria-label="Nom du carton">
+      <input class="in numero-in" id="num-${card.id}" maxlength="30" placeholder="N° imprimé" value="${esc(draft.numero)}" aria-label="Numéro imprimé sur le carton">
+    </div>
+    <div class="carton-slot"></div>
+    <div class="rows-in">${Array.from({ length: nRows }, (_, i) => `
+      <label class="row-label"><span>Ligne ${i + 1}</span><input class="in big row-in" id="row-${card.id}-${i}" data-r="${i}" inputmode="decimal" autocomplete="off" enterkeyhint="next" value="${(draft.rows[i] || []).join(' ')}" placeholder="ex. 4 23 45 67 88"></label>`).join('')}
+    </div>
+    <ul class="warns"></ul>
+    <div class="editor-actions">${kind === 'edit'
+      ? '<button type="button" class="btn primary" data-act="save">Enregistrer</button><button type="button" class="btn ghost" data-act="cancel">Annuler</button>'
+      : '<button type="button" class="btn primary" data-act="accept">Valider</button><button type="button" class="btn ghost" data-act="discard">Jeter</button>'}
+    </div>
+    ${draft.source ? `<p class="src">Lu sur : ${esc(draft.source)}</p>` : ''}`;
+  const refresh = () => {
+    $('.carton-slot', el).innerHTML = cartonHTML(draft, new Set(), { showDoubt: true });
+    const w = cardWarnings(draft, kind === 'edit' ? card.id : null);
+    $('.warns', el).innerHTML = w.map(x => `<li>${esc(x)}</li>`).join('');
+    el.classList.toggle('has-warn', w.length > 0);
+  };
+  el.addEventListener('input', e => {
+    const t = e.target;
+    if (t.classList.contains('row-in')) {
+      const r = Number(t.dataset.r);
+      for (let i = 0; i <= r; i++) if (!draft.rows[i]) draft.rows[i] = [];
+      draft.rows[r] = parseRow(t.value);
+    } else if (t.classList.contains('label-in')) draft.label = t.value.trim();
+    else if (t.classList.contains('numero-in')) draft.numero = t.value.trim();
+    refresh();
+    if (kind === 'pending') commit({ render: false });
+  });
+  el.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || !e.target.classList.contains('row-in')) return;
+    e.preventDefault();
+    const nextInput = $(`#row-${CSS.escape(card.id)}-${Number(e.target.dataset.r) + 1}`, el);
+    if (nextInput) nextInput.focus(); else e.target.blur();
+  });
+  el.addEventListener('click', async e => {
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (!act) return;
+    if (act === 'accept') acceptPending([card.id]);
+    else if (act === 'discard') { state.pending = state.pending.filter(p => p.id !== card.id); commit(); }
+    else if (act === 'cancel') { editingId = null; renderCardsView(); }
+    else if (act === 'save') {
+      const rows = draft.rows.filter(r => r.length);
+      if (!rows.length) { toast('Carton vide : tape au moins une ligne'); return; }
+      const target = state.cards.find(c => c.id === card.id);
+      if (target) Object.assign(target, { label: draft.label || target.label, numero: draft.numero, rows, doubt: [] });
+      editingId = null;
+      commit();
+      toast('Carton enregistré');
+    }
+  });
+  refresh();
+  return el;
+}
+function acceptPending(ids) {
+  const take = state.pending.filter(p => ids.includes(p.id));
+  const ok = take.filter(p => p.rows.some(r => r.length));
+  if (!ok.length) { toast('Carton vide : tape au moins une ligne'); return; }
+  const hadExamples = state.cards.some(c => c.example);
+  if (hadExamples) {
+    state.cards = state.cards.filter(c => !c.example);
+    if (state.demo) { state.drawn = []; state.demo = false; state.mode = 'quine'; }
+  }
+  for (const p of ok) {
+    state.cards.push({ ...p, label: p.label || `Carton ${state.nextNo++}`, rows: p.rows.filter(r => r.length), doubt: [], active: true, example: false });
+  }
+  const done = new Set(ok.map(p => p.id));
+  state.pending = state.pending.filter(p => !done.has(p.id));
+  commit();
+  toast(hadExamples ? `${plural(ok.length, 'carton validé', 'cartons validés')}, exemples retirés` : plural(ok.length, 'carton validé', 'cartons validés'));
+}
+
+/* ---------- Vue Cartons ---------- */
+let editingId = null;
+function savedCardEl(card) {
+  const el = document.createElement('article');
+  el.className = 'gcard' + (card.active ? '' : ' inactive');
+  el.dataset.id = card.id;
+  el.dataset.sig = JSON.stringify([card.label, card.numero, card.rows, card.active]);
+  el.innerHTML = `<div class="gcard-head"><strong>${esc(cardName(card))}</strong>${serialHTML(card)}${card.example ? '<span class="chip">exemple</span>' : ''}${card.active ? '' : '<span class="chip off">hors jeu</span>'}</div>
+    ${cartonHTML(card, new Set())}
+    <div class="gcard-actions">
+      <button type="button" class="btn small" data-act="edit">Modifier</button>
+      <button type="button" class="btn small" data-act="toggle">${card.active ? 'Retirer du jeu' : 'Remettre en jeu'}</button>
+      <button type="button" class="btn small ghost" data-act="delete">Supprimer</button>
+    </div>`;
+  return el;
+}
+// Met à jour une liste sans recréer les éléments inchangés (garde le focus pendant la saisie).
+function syncList(container, items, keyOf, build, sigOf) {
+  const existing = new Map($$(':scope > [data-id]', container).map(el => [el.dataset.id, el]));
+  let prev = null;
+  for (const item of items) {
+    const key = keyOf(item);
+    let el = existing.get(key);
+    if (el && sigOf && el.dataset.sig !== undefined && el.dataset.sig !== sigOf(item)) { el.remove(); el = null; }
+    if (!el) el = build(item);
+    existing.delete(key);
+    const want = prev ? prev.nextSibling : container.firstChild;
+    if (el !== want) container.insertBefore(el, want);
+    prev = el;
+  }
+  existing.forEach(el => el.remove());
+}
+function renderCardsView() {
+  // En attente de vérification
+  $('#pending-section').hidden = !state.pending.length;
+  $('#pending-title').textContent = `À vérifier (${state.pending.length})`;
+  $('#btn-accept-all').hidden = state.pending.length < 2;
+  syncList($('#pending'), state.pending, p => p.id, p => editorEl(p, 'pending'));
+
+  // Enregistrés
+  const cards = state.cards.slice().sort((a, b) => (b.active - a.active) || byLabel(a, b));
+  $('#saved-title').textContent = `Mes cartons (${state.cards.length})`;
+  $('#saved-empty').hidden = cards.length > 0;
+  syncList($('#saved'), cards, c => c.id,
+    c => (c.id === editingId ? editorEl(c, 'edit') : savedCardEl(c)),
+    c => (c.id === editingId ? undefined : JSON.stringify([c.label, c.numero, c.rows, c.active])));
+  // Bascule édition / affichage si besoin
+  $$('#saved > [data-id]').forEach(el => {
+    const isEditor = el.classList.contains('editor');
+    if ((el.dataset.id === editingId) !== isEditor) {
+      const card = state.cards.find(c => c.id === el.dataset.id);
+      if (card) el.replaceWith(card.id === editingId ? editorEl(card, 'edit') : savedCardEl(card));
+    }
+  });
+  renderEngineNote();
+  renderQueue();
+}
+
+/* ---------- File d'analyse des photos ---------- */
+const jobs = [];
+let jobSeq = 0, running = 0, queuePaused = '';
+function addFiles(fileList) {
+  const files = [...fileList].filter(f => f && (f.type.startsWith('image/') || !f.type));
+  if (!files.length) return;
+  for (const file of files) jobs.push({ id: ++jobSeq, file, name: `Photo ${jobSeq}`, status: 'waiting', msg: 'En attente' });
+  renderQueue();
+  pump();
+}
+function concurrency() { return Engine.kind === 'api' ? 3 : 2; }
+function pump() {
+  if (queuePaused || !Engine.kind) { renderQueue(); return; }
+  while (running < concurrency()) {
+    const job = jobs.find(j => j.status === 'waiting');
+    if (!job) break;
+    running++;
+    job.status = 'running';
+    job.msg = 'Préparation de la photo…';
+    renderQueue();
+    runJob(job).finally(() => { running--; renderQueue(); pump(); });
+  }
+}
+async function runJob(job) {
+  try {
+    if (!job.blob) {
+      job.blob = await prepareImage(job.file);
+      job.thumb = URL.createObjectURL(job.blob);
+      job.file = null;
+    }
+    job.msg = 'Lecture des numéros… (jusqu\'à une minute)';
+    renderQueue();
+    const result = await Engine.analyze(job.blob, { fresh: job.tries > 0 });
+    job.tries = (job.tries || 0) + 1;
+    const found = parseCartons(result);
+    if (!found.length) { job.status = 'empty'; job.msg = 'Aucun carton lu. Reprends la photo de plus près.'; return; }
+    for (const c of found) state.pending.push({ ...c, id: uid(), source: job.name });
+    job.status = 'done';
+    job.msg = `${plural(found.length, 'carton trouvé', 'cartons trouvés')}, à vérifier plus bas`;
+    commit();
+  } catch (err) {
+    job.tries = (job.tries || 0) + 1;
+    job.status = 'error';
+    job.msg = err && err.userMessage ? err.userMessage : 'Erreur pendant l\'analyse. Réessaie.';
+    if (err && err.pause) queuePaused = job.msg;
+    if (!(err && err.userMessage)) console.error(err);
+  }
+}
+function renderQueue() {
+  const section = $('#jobs-section');
+  section.hidden = !jobs.length;
+  if (!jobs.length) return;
+  const waiting = jobs.filter(j => j.status === 'waiting' || j.status === 'running').length;
+  $('#jobs-title').textContent = waiting ? `Photos (${waiting} en cours)` : `Photos (${jobs.length})`;
+  const paused = $('#queue-paused');
+  const blocked = !Engine.kind && Engine.ready && jobs.some(j => j.status === 'waiting');
+  paused.hidden = !queuePaused && !blocked;
+  paused.textContent = queuePaused ? `Analyse en pause : ${queuePaused}` : blocked ? 'Analyse indisponible ici. Ajoute une clé dans Réglages ou saisis les cartons à la main.' : '';
+  $('#btn-retry-all').hidden = !jobs.some(j => j.status === 'error' || j.status === 'empty') && !queuePaused;
+  $('#jobs').innerHTML = jobs.map(j => `
+    <li class="job ${j.status}" data-job="${j.id}">
+      ${j.thumb ? `<img class="thumb" src="${j.thumb}" alt="">` : '<span class="thumb"></span>'}
+      <div class="job-text"><strong>${esc(j.name)}</strong><span>${j.status === 'running' ? '<i class="spinner" aria-hidden="true"></i>' : ''}${esc(j.msg)}</span></div>
+      <div class="job-actions">${j.status === 'error' || j.status === 'empty' ? '<button type="button" class="btn small" data-jact="retry">Relire</button>' : ''}${j.status !== 'running' ? '<button type="button" class="btn small ghost" data-jact="remove" aria-label="Retirer la photo">×</button>' : ''}</div>
+    </li>`).join('');
+}
+function retryJob(job) { job.status = 'waiting'; job.msg = 'En attente'; }
+
+async function prepareImage(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(Object.assign(new Error('decode'), { userMessage: 'Photo illisible. Utilise une photo JPEG ou PNG.' }));
+      i.src = url;
+    });
+    const max = 2048;
+    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * scale)), h = Math.max(1, Math.round(img.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.88));
+    if (!blob) throw Object.assign(new Error('encode'), { userMessage: 'Photo illisible. Réessaie avec une autre.' });
+    return blob;
+  } finally { URL.revokeObjectURL(url); }
+}
+function parseCartons(res) {
+  const list = Array.isArray(res && res.cartons) ? res.cartons : Array.isArray(res) ? res : [];
+  return list.map(c => {
+    const raw = Array.isArray(c && c.lignes) ? c.lignes : Array.isArray(c && c.rows) ? c.rows : [];
+    const rows = raw.map(r => Array.isArray(r) ? [...new Set(r.map(Number).filter(validNum))].sort((a, b) => a - b) : []).filter(r => r.length);
+    const doubt = (Array.isArray(c && c.douteux) ? c.douteux : []).map(Number).filter(validNum);
+    return { label: '', numero: String((c && c.numero) ?? '').trim().slice(0, 30), rows, doubt, active: true };
+  }).filter(c => c.rows.length);
+}
+
+/* ---------- Analyse par Claude ---------- */
+const PROMPT = `Tu lis des photos de cartons de loto français.
+Un carton est une grille de 3 lignes et 9 colonnes. Chaque ligne contient en général 5 numéros de 1 à 90 ; les autres cases sont vides ou décorées.
+Colonne 1 : 1 à 9, colonne 2 : 10 à 19, colonne 3 : 20 à 29, … colonne 9 : 80 à 90. Sers-toi de la colonne pour trancher les chiffres ambigus (6/9, 1/7, 3/8).
+La photo peut montrer un seul carton ou plusieurs (par exemple une planche de 6), parfois de travers ou tournée.
+Pour chaque carton entièrement visible : lis les lignes de haut en bas, chaque ligne de gauche à droite, dans le sens de lecture du carton.
+Ignore les cartons coupés par le bord de la photo et tout ce qui n'est pas un numéro de case (logo, prix, date, nom de l'association).
+Réponds uniquement avec ce JSON, sans texte autour :
+{"cartons":[{"numero":"identifiant imprimé sur le carton, ou chaîne vide","lignes":[[n,n,n,n,n],[n,n,n,n,n],[n,n,n,n,n]],"douteux":[numéros dont tu n'es pas sûr]}]}
+Si aucun carton n'est lisible, réponds {"cartons":[]}.`;
+const CARD_SCHEMA = {
+  type: 'object', additionalProperties: false, required: ['cartons'],
+  properties: {
+    cartons: {
+      type: 'array',
+      items: {
+        type: 'object', additionalProperties: false, required: ['numero', 'lignes', 'douteux'],
+        properties: {
+          numero: { type: 'string' },
+          lignes: { type: 'array', items: { type: 'array', items: { type: 'integer' } } },
+          douteux: { type: 'array', items: { type: 'integer' } },
+        },
+      },
+    },
+  },
+};
+const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.3.0/+esm';
+const MODEL = 'claude-opus-5-5';
+const userErr = (msg, pause = false) => Object.assign(new Error(msg), { userMessage: msg, pause });
+
+function getApiKey() { try { return localStorage.getItem(KEY_KEY) || ''; } catch (e) { return ''; } }
+function setApiKey(k) { try { if (k) localStorage.setItem(KEY_KEY, k); else localStorage.removeItem(KEY_KEY); } catch (e) { /* bloqué */ } }
+let sdkPromise = null;
+function loadSdk() {
+  sdkPromise = sdkPromise || import(SDK_URL).then(m => m.default || m.Anthropic).catch(err => { sdkPromise = null; throw err; });
+  return sdkPromise;
+}
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1] || '');
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+const Engine = {
+  kind: null,     // 'claude' (via claude.ai), 'api' (clé API) ou null
+  ready: false,
+  sample: null,
+  limits: null,
+  async init() {
+    if (IN_CLAUDE) {
+      try {
+        const sample = await window.claude.use('sample');
+        if (sample) {
+          this.sample = sample;
+          this.limits = await sample.limits().catch(() => null);
+          if (this.limits && this.limits.images) this.kind = 'claude';
+        }
+      } catch (e) { /* indisponible */ }
+    } else if (getApiKey()) {
+      this.kind = 'api';
+    }
+    this.ready = true;
+    renderEngineNote();
+    renderEngineBox();
+    pump();
+  },
+  refreshApi() {
+    if (IN_CLAUDE) return;
+    this.kind = getApiKey() ? 'api' : null;
+    renderEngineNote();
+    renderEngineBox();
+    if (this.kind) pump();
+  },
+  async analyze(blob, { fresh = false } = {}) {
+    if (this.kind === 'claude') return this.viaClaudeAi(blob, fresh);
+    if (this.kind === 'api') return this.viaApi(blob);
+    throw userErr('Analyse indisponible. Saisis le carton à la main.', true);
+  },
+  async viaClaudeAi(blob, fresh) {
+    const max = this.limits && this.limits.images && this.limits.images.maxInputBytes;
+    if (max && blob.size > max) throw userErr('Photo trop lourde. Reprends-la de plus près.');
+    try {
+      const opts = { images: blob, modelTier: 'default' };
+      if (fresh) opts.cache = false;
+      return await this.sample.json(PROMPT, opts);
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 'not_granted' || code === 'sampling_disabled' || code === 'capability_disabled' || code === 'capability_removed' || code === 'not_declared') throw userErr('Accès à Claude non autorisé. Autorise-le dans le menu de la page, ou saisis à la main.', true);
+      if (code === 'rate_limited' || code === 'queue_overflow') throw userErr('Limite d\'utilisation atteinte. Attends un peu puis touche « Tout réessayer ».', true);
+      if (code === 'session_expired') throw userErr('Session expirée. Recharge la page.', true);
+      if (code === 'images_unavailable' || code === 'image_rejected') throw userErr('Photo refusée (format ou taille). Essaie une autre photo.');
+      if (code === 'invalid_json' || code === 'empty_completion') throw userErr('Réponse illisible. Touche « Relire ».');
+      if (code === 'refused') throw userErr('Claude n\'a pas pu lire cette photo.');
+      if (code === 'cancelled') throw userErr('Analyse annulée.');
+      throw userErr('Service indisponible pour le moment. Touche « Relire ».');
+    }
+  },
+  async viaApi(blob) {
+    let Anthropic;
+    try { Anthropic = await loadSdk(); } catch (e) { throw userErr('Impossible de charger le module Claude. Vérifie la connexion internet.', true); }
+    const client = new Anthropic({ apiKey: getApiKey(), dangerouslyAllowBrowser: true, maxRetries: 2 });
+    const data = await blobToBase64(blob);
+    let response;
+    try {
+      response = await client.beta.messages.create({
+        model: MODEL,
+        max_tokens: 16000,
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default',
+        output_config: { effort: 'medium', format: { type: 'json_schema', schema: CARD_SCHEMA } },
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } },
+            { type: 'text', text: PROMPT },
+          ],
+        }],
+      });
+    } catch (err) {
+      if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError) throw userErr('Clé API refusée. Vérifie-la dans Réglages.', true);
+      if (err instanceof Anthropic.RateLimitError) throw userErr('Trop de photos d\'un coup. Attends une minute puis touche « Tout réessayer ».', true);
+      if (err instanceof Anthropic.BadRequestError) throw userErr('Photo refusée par le service : ' + err.message);
+      if (err instanceof Anthropic.APIConnectionError) throw userErr('Pas de connexion internet.', true);
+      if (err instanceof Anthropic.APIError) throw userErr(`Service indisponible (${err.status || 'erreur'}). Touche « Relire ».`);
+      throw err;
+    }
+    if (response.stop_reason === 'refusal') throw userErr('Claude n\'a pas pu lire cette photo.');
+    if (response.stop_reason === 'max_tokens') throw userErr('Trop de cartons sur une photo. Prends-en moins à la fois.');
+    const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    try { return JSON.parse(text); } catch (e) { throw userErr('Réponse illisible. Touche « Relire ».'); }
+  },
+  async testKey(key) {
+    const Anthropic = await loadSdk();
+    const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true, maxRetries: 0 });
+    await client.models.retrieve(MODEL);
+  },
+};
+
+function renderEngineNote() {
+  const el = $('#engine-note');
+  if (!Engine.ready) { el.textContent = 'Recherche du service d\'analyse…'; el.classList.remove('warn'); return; }
+  if (Engine.kind === 'claude') { el.textContent = 'Les photos sont lues par Claude avec ton compte claude.ai. Vérifie chaque carton avant de valider.'; el.classList.remove('warn'); }
+  else if (Engine.kind === 'api') { el.textContent = 'Les photos sont lues par Claude avec ta clé API. Vérifie chaque carton avant de valider.'; el.classList.remove('warn'); }
+  else if (IN_CLAUDE) { el.textContent = 'La lecture des photos n\'est pas disponible ici. Saisis les cartons à la main.'; el.classList.add('warn'); }
+  else { el.innerHTML = 'Pour lire les photos, ajoute une clé API dans <button type="button" class="link" data-goto="reglages">Réglages</button>. Tu peux aussi saisir les cartons à la main.'; el.classList.add('warn'); }
+}
+function renderEngineBox() {
+  const box = $('#engine-box');
+  if (!Engine.ready) return;
+  if (IN_CLAUDE) {
+    box.innerHTML = Engine.kind === 'claude'
+      ? '<p class="note">Les photos sont envoyées à Claude avec ton compte claude.ai. Rien à configurer. La première fois, claude.ai te demande l\'autorisation.</p>'
+      : '<p class="note warn">La lecture des photos n\'est pas disponible dans cette vue. La saisie à la main fonctionne.</p>';
+    return;
+  }
+  const has = !!getApiKey();
+  box.innerHTML = `
+    <p class="note">Hors de claude.ai, l'app a besoin d'une clé API Anthropic (console.anthropic.com, rubrique API Keys). Elle reste uniquement sur cet appareil. Modèle utilisé : Claude Opus 5.5.</p>
+    <input class="in" type="password" id="api-key" autocomplete="off" spellcheck="false" placeholder="${has ? 'Clé enregistrée' : 'sk-ant-…'}" aria-label="Clé API Anthropic">
+    <div class="row-btns">
+      <button type="button" class="btn small primary" id="btn-key-save">Enregistrer la clé</button>
+      ${has ? '<button type="button" class="btn small ghost" id="btn-key-forget">Oublier la clé</button>' : ''}
+    </div>
+    <p class="note" id="key-status">${has ? 'Une clé est enregistrée.' : 'Aucune clé enregistrée.'}</p>`;
+}
+
+/* ---------- Sauvegarde claude.ai (base de données de la page) ---------- */
+const Cloud = {
+  ref: null, writing: false, dirty: false, timer: null, warned: false,
+  async init() {
+    if (!IN_CLAUDE) return;
+    try {
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) return;
+      const id = await user.id();
+      if (!id) return;
+      const ref = db.doc(`data/users/${id}/state`);
+      const snap = await ref.get();
+      this.ref = ref;
+      if (snap.exists) {
+        const body = snap.data() || {};
+        const remote = normalize(typeof body.json === 'string' ? JSON.parse(body.json) : null);
+        if (remote.updatedAt > state.updatedAt) {
+          state = remote;
+          saveLocal();
+          // Les éditeurs ouverts pointent vers l'ancien état : on les reconstruit.
+          $('#pending').innerHTML = '';
+          $('#saved').innerHTML = '';
+          editingId = null;
+          renderAll();
+        }
+        else if (state.updatedAt > remote.updatedAt) this.schedule();
+      } else if (state.updatedAt > 0) this.schedule();
+    } catch (e) { this.ref = null; }
+  },
+  schedule() {
+    if (!this.ref) return;
+    this.dirty = true;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.flush(), 1500);
+  },
+  async flush() {
+    if (!this.ref || this.writing || !this.dirty) return;
+    this.writing = true;
+    this.dirty = false;
+    // Tout l'état tient dans un seul document, stocké en texte JSON (les lignes sont des tableaux imbriqués).
+    try { await this.ref.set({ json: JSON.stringify(state), updatedAt: state.updatedAt }); }
+    catch (e) {
+      if (!this.warned && e && (e.code === 'quota_exceeded' || e.code === 'revoked' || e.code === 'invalid_argument')) { this.warned = true; toast('Sauvegarde en ligne impossible, les cartons restent sur cet appareil'); }
+      if (e && e.code === 'unavailable') this.dirty = true;
+    } finally {
+      this.writing = false;
+      if (this.dirty) this.schedule();
+    }
+  },
+};
+
+/* ---------- Divers UI ---------- */
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+function ask(message, okLabel, danger = false) {
+  return new Promise(resolve => {
+    const box = $('#ask'), ok = $('#ask-ok'), cancel = $('#ask-cancel');
+    $('#ask-text').textContent = message;
+    ok.textContent = okLabel;
+    ok.className = 'btn ' + (danger ? 'danger' : 'primary');
+    box.hidden = false;
+    cancel.focus();
+    const done = v => { box.hidden = true; ok.onclick = cancel.onclick = null; resolve(v); };
+    ok.onclick = () => done(true);
+    cancel.onclick = () => done(false);
+  });
+}
+function renderHeader() {
+  const mode = MODES[state.mode];
+  $('#top-meta').innerHTML = `<strong>${mode.label}</strong><br>${plural(state.drawn.length, 'numéro', 'numéros')}`;
+  const n = state.pending.length;
+  const tc = $('#tab-count');
+  tc.hidden = !n;
+  tc.textContent = n;
+  tc.title = n ? `${n} à vérifier` : '';
+}
+function renderSettings() {
+  $('#set-sound').checked = !!state.settings.sound;
+  $('#set-vibrate').checked = !!state.settings.vibrate;
+  $('#set-wake').checked = !!state.settings.wake;
+}
+function renderAll() {
+  renderHeader();
+  renderGame();
+  renderCardsView();
+  renderSettings();
+}
+
+/* ---------- Navigation ---------- */
+const VIEWS = ['partie', 'cartons', 'reglages'];
+let currentView = 'partie';
+function showView(v) {
+  if (!VIEWS.includes(v)) v = 'partie';
+  currentView = v;
+  VIEWS.forEach(name => { $('#view-' + name).hidden = name !== v; });
+  $$('.tab').forEach(t => t.toggleAttribute('aria-current', false));
+  $(`.tab[data-tab="${v}"]`).setAttribute('aria-current', 'page');
+  window.scrollTo(0, 0);
+  updateWake();
+}
+function goto(v) {
+  showView(v);
+  try { if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v); } catch (e) { /* bac à sable */ }
+}
+
+/* ---------- Événements ---------- */
+$$('.tab').forEach(t => t.addEventListener('click', () => goto(t.dataset.tab)));
+document.addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) goto(g.dataset.goto); });
+window.addEventListener('hashchange', () => showView(location.hash.slice(1)));
+
+$('#keypad').addEventListener('click', e => { const k = e.target.closest('[data-k]'); if (k) pressKey(k.dataset.k); });
+$$('.modes [data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+$$('.filters [data-filter]').forEach(b => b.addEventListener('click', () => { state.settings.filter = b.dataset.filter; commit(); }));
+$('#btn-undo').addEventListener('click', () => {
+  const n = state.drawn.pop();
+  if (n == null) return;
+  commit();
+  toast(`${n} retiré`);
+});
+$('#btn-board').addEventListener('click', () => {
+  const wrap = $('#board-wrap');
+  wrap.hidden = !wrap.hidden;
+  $('#btn-board').setAttribute('aria-expanded', String(!wrap.hidden));
+  if (!wrap.hidden) renderBoard();
+});
+$('#board').addEventListener('click', e => {
+  const b = e.target.closest('[data-n]');
+  if (!b) return;
+  const n = Number(b.dataset.n);
+  if (state.drawn.includes(n)) removeDrawn(n); else addDrawn(n);
+});
+$('#btn-new-game').addEventListener('click', async () => {
+  if (state.drawn.length && !(await ask(`Effacer les ${state.drawn.length} numéros sortis ? Tes cartons sont gardés.`, 'Nouvelle partie', true))) return;
+  state.drawn = []; state.mode = 'quine'; state.demo = false;
+  commit();
+  toast('Nouvelle partie : on joue la quine');
+});
+$('#win-close').addEventListener('click', closeWin);
+$('#win-next').addEventListener('click', async () => {
+  const next = $('#win-next').dataset.next;
+  closeWin();
+  if (next === 'new') { $('#btn-new-game').click(); return; }
+  setMode(next);
+  toast(`On joue maintenant : ${MODES[next].label}`);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (!$('#win').hidden) closeWin(); return; }
+  if (currentView !== 'partie' || !$('#win').hidden || !$('#ask').hidden) return;
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (/^[0-9]$/.test(e.key)) { pressKey(e.key); e.preventDefault(); }
+  else if (e.key === 'Backspace') { pressKey('del'); e.preventDefault(); }
+  else if (e.key === 'Enter') { pressKey('ok'); e.preventDefault(); }
+});
+
+$('#btn-camera').addEventListener('click', () => $('#file-camera').click());
+$('#btn-gallery').addEventListener('click', () => $('#file-gallery').click());
+['#file-camera', '#file-gallery'].forEach(sel => $(sel).addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; }));
+$('#btn-manual').addEventListener('click', () => {
+  const card = { id: uid(), label: '', numero: '', rows: [[], [], []], doubt: [], active: true, source: '' };
+  state.pending.unshift(card);
+  commit();
+  const first = $(`#row-${CSS.escape(card.id)}-0`);
+  if (first) { first.scrollIntoView({ block: 'center' }); first.focus(); }
+});
+$('#btn-accept-all').addEventListener('click', () => acceptPending(state.pending.map(p => p.id)));
+$('#jobs').addEventListener('click', e => {
+  const btn = e.target.closest('[data-jact]');
+  if (!btn) return;
+  const job = jobs.find(j => j.id === Number(btn.closest('[data-job]').dataset.job));
+  if (!job) return;
+  if (btn.dataset.jact === 'retry') { queuePaused = ''; retryJob(job); pump(); }
+  else if (btn.dataset.jact === 'remove') { if (job.thumb) URL.revokeObjectURL(job.thumb); jobs.splice(jobs.indexOf(job), 1); renderQueue(); }
+});
+$('#btn-retry-all').addEventListener('click', () => { queuePaused = ''; jobs.filter(j => j.status === 'error' || j.status === 'empty').forEach(retryJob); pump(); });
+$('#btn-clear-jobs').addEventListener('click', () => {
+  for (let i = jobs.length - 1; i >= 0; i--) if (jobs[i].status !== 'running') { if (jobs[i].thumb) URL.revokeObjectURL(jobs[i].thumb); jobs.splice(i, 1); }
+  queuePaused = '';
+  renderQueue();
+});
+$('#saved').addEventListener('click', async e => {
+  const btn = e.target.closest('[data-act]');
+  const host = e.target.closest('#saved > [data-id]');
+  if (!btn || !host || host.classList.contains('editor')) return;
+  const card = state.cards.find(c => c.id === host.dataset.id);
+  if (!card) return;
+  const act = btn.dataset.act;
+  if (act === 'edit') { editingId = card.id; renderCardsView(); const inp = $(`#row-${CSS.escape(card.id)}-0`); if (inp) inp.focus(); }
+  else if (act === 'toggle') { card.active = !card.active; commit(); }
+  else if (act === 'delete') {
+    if (!(await ask(`Supprimer « ${cardName(card)} » ?`, 'Supprimer', true))) return;
+    state.cards = state.cards.filter(c => c.id !== card.id);
+    commit();
+    toast('Carton supprimé');
+  }
+});
+
+$('#engine-box').addEventListener('click', async e => {
+  if (e.target.id === 'btn-key-save') {
+    const key = $('#api-key').value.trim();
+    const status = $('#key-status');
+    if (!key) { status.textContent = 'Colle d\'abord ta clé.'; return; }
+    status.textContent = 'Vérification de la clé…';
+    try {
+      await Engine.testKey(key);
+      setApiKey(key);
+      Engine.refreshApi();
+      toast('Clé enregistrée');
+    } catch (err) {
+      $('#key-status').textContent = err && (err.status === 401 || err.status === 403) ? 'Clé refusée. Vérifie-la sur console.anthropic.com.' : 'Vérification impossible (connexion ?). Réessaie.';
+    }
+  } else if (e.target.id === 'btn-key-forget') {
+    setApiKey('');
+    Engine.refreshApi();
+    toast('Clé oubliée');
+  }
+});
+['sound', 'vibrate', 'wake'].forEach(k => $('#set-' + k).addEventListener('change', e => { state.settings[k] = e.target.checked; commit(); updateWake(); }));
+$('#btn-export').addEventListener('click', () => {
+  const data = JSON.stringify({ app: 'loto-cartons', version: 1, cards: state.cards.filter(c => !c.example).map(({ label, numero, rows, active }) => ({ label, numero, rows, active })) });
+  const ta = $('#backup');
+  ta.value = data;
+  const fallback = () => { ta.focus(); ta.select(); toast('Texte sélectionné : copie-le'); };
+  try { navigator.clipboard.writeText(data).then(() => toast('Cartons copiés'), fallback); } catch (e) { fallback(); }
+});
+$('#btn-import').addEventListener('click', () => {
+  let parsed;
+  try { parsed = JSON.parse($('#backup').value); } catch (e) { toast('Sauvegarde illisible'); return; }
+  const list = (Array.isArray(parsed) ? parsed : parsed && parsed.cards) || [];
+  const incoming = list.map(cleanCard).filter(c => c && c.rows.some(r => r.length));
+  if (!incoming.length) { toast('Aucun carton dans cette sauvegarde'); return; }
+  if (state.cards.some(c => c.example)) { state.cards = state.cards.filter(c => !c.example); if (state.demo) { state.drawn = []; state.demo = false; state.mode = 'quine'; } }
+  let added = 0;
+  for (const c of incoming) {
+    if (findTwin(c)) continue;
+    state.cards.push({ ...c, id: uid(), example: false, label: c.label || `Carton ${state.nextNo++}` });
+    added++;
+  }
+  commit();
+  toast(`${plural(added, 'carton importé', 'cartons importés')}`);
+});
+$('#btn-reset-game').addEventListener('click', () => $('#btn-new-game').click());
+$('#btn-reset-cards').addEventListener('click', async () => {
+  if (!(await ask(`Supprimer les ${state.cards.length} cartons et ceux à vérifier ? C'est définitif.`, 'Tout supprimer', true))) return;
+  state.cards = []; state.pending = []; state.drawn = []; state.demo = false; state.nextNo = 1;
+  commit();
+  toast('Tous les cartons sont supprimés');
+});
+document.addEventListener('visibilitychange', updateWake);
+
+/* ---------- Démarrage ---------- */
+showView(location.hash.slice(1) || 'partie');
+renderAll();
+Engine.init();
+Cloud.init();
+})();
+</script>
+<!-- APP:END -->
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+</script>
+</body>
+</html>
