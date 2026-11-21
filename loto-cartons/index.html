@@ -1535,21 +1535,17 @@ function archivedFreq(lotos) {
   }
   return { P, pct: n => (P ? count[n] / P : 0) };
 }
-// Chance qu'au moins un des numéros attendus sorte dans les k prochains tirages,
-// parmi les boules qui restent (elle monte à chaque boule tirée).
-function chanceWithin(k, waitingCount, remaining) {
-  if (remaining <= 0) return 1;
-  let none = 1;
-  for (let i = 0; i < Math.min(k, remaining); i++) none *= Math.max(0, remaining - waitingCount - i) / (remaining - i);
-  return 1 - none;
-}
-// Petite ligne sous « Attend X » : chance sur les 10 prochains numéros + % des parties où X est déjà sorti.
+// Petite ligne sous « Attend X » : chance que X sorte au prochain numéro tiré
+// (k numéros attendus parmi les boules restantes, elle monte à chaque boule)
+// + % des parties où X est déjà sorti.
 function oddsHTML(waiting, drawnCount, hLoto, hAll) {
-  const live = chanceWithin(10, waiting.length, 90 - drawnCount);
+  const remaining = Math.max(1, 90 - drawnCount);
+  const k = Math.min(waiting.length, remaining);
+  const p = (k / remaining * 100).toFixed(1).replace('.', ',');
   const main = hLoto.P ? hLoto : hAll;
   const who = waiting.length === 1 ? `Le ${waiting[0]}` : waiting.join(' ou ');
   const hist = main.P ? ` · ${waiting.length === 1 ? 'sorti' : 'sortis'} ${waiting.map(n => pc(main.pct(n))).join(', ')} des parties` : '';
-  return `<p class="odds">${who} : ${pc(live)} dans les 10 prochains numéros${hist}</p>`;
+  return `<p class="odds">${who} : ${plural(k, 'chance', 'chances')} sur ${remaining} au prochain numéro (${p}\u202f%)${hist}</p>`;
 }
 let statSel = 0;
 function computeStats(scope) {
