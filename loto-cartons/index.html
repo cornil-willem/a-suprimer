@@ -498,7 +498,7 @@ const IN_CLAUDE = typeof window.claude === 'object' && window.claude !== null &&
 
 const STORE_KEY = 'loto-cartons:v1';
 // Adresse de l'appli installable (téléphone). La page claude.ai y envoie les cartons lus.
-const APP_URL = 'https://loto-cartons.vercel.app/';
+const APP_URL = ''; // vide : la page claude.ai sert d'appli (icône sur l'écran d'accueil), pas d'envoi vers vercel.app
 const KEY_KEY = 'loto-cartons:apikey';
 const MODES = {
   quine:  { label: 'Quine',        rows: 1, win: 'QUINE !',        next: 'double' },

@@ -21,7 +21,16 @@ Appli mobile (PWA) pour jouer au loto avec beaucoup de cartons sans rien rater.
 Carton français classique : 3 lignes × 9 colonnes, 5 numéros par ligne, de 1 à 90.
 La colonne d'un numéro sert à repérer les erreurs de lecture (ex. 23 et 27 sur la même ligne).
 
-## Installer l'appli sur le téléphone
+## Sur le téléphone (version recommandée)
+
+La page Loto Cartons sur claude.ai sert d'appli : la lecture des photos y est gratuite
+avec le compte Claude. Pour l'avoir en icône (Android, Brave ou Chrome) : ouvrir la page
+dans le navigateur, menu ⋮ → « Ajouter à l'écran d'accueil » → « Créer un raccourci ».
+
+## Installer la version vercel.app (optionnel)
+
+Cette version lit les photos via Vercel AI Gateway, qui demande une carte bancaire
+sur le compte Vercel (même pour ses crédits gratuits).
 
 Adresse : **https://loto-cartons.vercel.app**
 
