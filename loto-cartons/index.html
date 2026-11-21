@@ -184,6 +184,7 @@ main{padding-bottom:calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom,0px
 .gcard-head strong{font-family:var(--font-display);font-weight:700}
 .gcard-head .serial{color:var(--muted);font-size:.82rem}
 .gcard-head .chip{margin-left:auto}
+.odds{margin:-4px 0 0;text-align:right;font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .gcard-actions{display:flex;flex-wrap:wrap;gap:6px}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);padding:20px;text-align:center;display:grid;gap:10px;justify-items:center}
 .empty p{margin:0;color:var(--muted)}
@@ -769,12 +770,15 @@ function renderGame() {
 
   const shown = state.settings.filter === 'near' ? evals.filter(e => e.missing <= 2) : evals;
   $('#game-title').textContent = state.settings.filter === 'near' ? `Proches du but (${shown.length})` : `Mes cartons (${evals.length})`;
+  // Fréquences des parties déjà terminées (ce loto, et tous les lotos) pour les numéros attendus.
+  const hLoto = archivedFreq([currentLoto()]);
+  const hAll = archivedFreq(state.lotos);
   $('#game-cards').innerHTML = shown.map(e => {
     const tag = e.win ? `<span class="chip win">${mode.label}</span>`
       : e.waiting.length ? `<span class="chip near">Attend ${e.waiting.join(' ou ')}</span>`
       : `<span class="chip">Manque ${e.missing}</span>`;
     const cls = e.win ? ' win' : e.waiting.length ? ' near' : '';
-    return `<article class="gcard${cls}"><div class="gcard-head"><strong>${esc(cardName(e.card))}</strong>${serialHTML(e.card)}${tag}</div>${cartonHTML(e.card, drawnSet, { waiting: e.waiting })}</article>`;
+    return `<article class="gcard${cls}"><div class="gcard-head"><strong>${esc(cardName(e.card))}</strong>${serialHTML(e.card)}${tag}</div>${!e.win && e.waiting.length ? oddsHTML(e.waiting, hLoto, hAll) : ''}${cartonHTML(e.card, drawnSet, { waiting: e.waiting })}</article>`;
   }).join('');
   $('#game-empty').hidden = evals.length > 0;
   if (!evals.length) $('#game-cards').innerHTML = '';
@@ -1521,6 +1525,28 @@ function startNewLoto() {
 
 /* ---------- Stats ---------- */
 const pc = x => `${Math.round(x * 100)}\u202f%`;
+// Part des parties terminées où chaque numéro est sorti (la partie en cours n'est pas comptée).
+function archivedFreq(lotos) {
+  const count = new Array(91).fill(0);
+  let P = 0;
+  for (const l of lotos) for (const x of l.parties) {
+    P++;
+    for (const n of new Set(x.d.split('.').map(Number))) if (validNum(n)) count[n]++;
+  }
+  return { P, pct: n => (P ? count[n] / P : 0) };
+}
+// Petite ligne sous « Attend X » : combien de fois X est sorti dans ce loto et au total.
+function oddsHTML(waiting, hLoto, hAll) {
+  if (!hAll.P) return '';
+  const both = hLoto.P && hAll.P > hLoto.P;
+  if (waiting.length === 1) {
+    const n = waiting[0];
+    const main = hLoto.P ? hLoto : hAll;
+    return `<p class="odds">Le ${n} sort dans ${pc(main.pct(n))} des parties${hLoto.P ? ' de ce loto' : ''}${both ? ` · ${pc(hAll.pct(n))} au total` : ''}</p>`;
+  }
+  const main = hLoto.P ? hLoto : hAll;
+  return `<p class="odds">Sortis dans ${waiting.map(n => `${n} : ${pc(main.pct(n))}`).join(' · ')} des parties${hLoto.P ? ' de ce loto' : ''}</p>`;
+}
 let statSel = 0;
 function computeStats(scope) {
   const lotos = scope === 'loto' ? [currentLoto()] : state.lotos.slice().sort((a, b) => a.startedAt - b.startedAt);
