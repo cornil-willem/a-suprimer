@@ -47,6 +47,11 @@
   --warn-bg:#fdefd8;
   --danger:#c62828;
   --scrim:rgba(14,19,34,.62);
+  /* Stats : chaud = sort plus que la moyenne, froid = moins (échelle divergente, neutre au milieu) */
+  --hot:var(--jeton-solid);
+  --cold:var(--accent);
+  --on-hot:var(--on-jeton);
+  --on-cold:var(--accent-ink);
   --font-display:"Rubik", ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
   --font-body:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --radius:14px;
@@ -101,7 +106,7 @@ main{padding-bottom:calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom,0px
 
 /* Onglets */
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.tabbar-inner{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);height:var(--tabbar-h)}
+.tabbar-inner{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);height:var(--tabbar-h)}
 .tab{border:0;background:none;display:grid;justify-items:center;align-content:center;gap:2px;font-size:.78rem;font-weight:600;color:var(--muted);position:relative}
 .tab svg{width:24px;height:24px}
 .tab[aria-current="page"]{color:var(--accent)}
@@ -183,6 +188,50 @@ main{padding-bottom:calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom,0px
 .gcard-actions{display:flex;flex-wrap:wrap;gap:6px}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);padding:20px;text-align:center;display:grid;gap:10px;justify-items:center}
 .empty p{margin:0;color:var(--muted)}
+
+/* Loto en cours */
+.loto-line{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:.88rem;color:var(--muted)}
+.loto-line strong{color:var(--ink);font-family:var(--font-display);font-weight:700;font-size:1rem}
+
+/* Stats */
+.modes.seg2{grid-template-columns:repeat(2,1fr)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;display:grid;gap:2px;min-width:0}
+.tile b{font:700 1.55rem/1.1 var(--font-body)}
+.tile span{font-size:.76rem;color:var(--muted)}
+.stat-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px;min-width:0}
+.stat-card h2{font-size:1.02rem}
+.stat-sub{margin:0;font-size:.84rem;color:var(--muted)}
+.wins{display:flex;flex-wrap:wrap;gap:6px}
+.ranks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rank{display:grid;grid-template-columns:34px minmax(0,1fr) 4.4em;align-items:center;gap:10px}
+.ball-chip{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:700 .9rem/1 var(--font-display);font-variant-numeric:tabular-nums;background:var(--hot);color:var(--on-hot)}
+.ball-chip.cold{background:var(--cold);color:var(--on-cold)}
+.ball-chip.flat{background:var(--surface-2);color:var(--ink)}
+.track{position:relative;height:10px;background:var(--surface-2);border-radius:5px}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--hot)}
+.fill.cold{background:var(--cold)}
+.avg{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--ink);opacity:.5;border-radius:1px}
+.val{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:.9rem;line-height:1.15}
+.val small{display:block;font-weight:400;color:var(--muted);font-size:.72rem}
+.heat{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+.heat button{aspect-ratio:1;border:0;border-radius:6px;padding:0;font:600 .8rem/1 var(--font-display);font-variant-numeric:tabular-nums;background:var(--surface-2);color:var(--ink);min-width:0}
+.heat button[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.heat-legend{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-size:.76rem;color:var(--muted)}
+.heat-scale{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--cold),var(--surface-2),var(--hot))}
+.heat-detail{margin:0;min-height:2.7em;font-size:.88rem}
+.late{display:flex;flex-wrap:wrap;gap:10px 14px}
+.late-item{display:flex;align-items:center;gap:6px;font-size:.84rem;color:var(--muted)}
+.scores .rank{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 4.4em}
+.score-name{min-width:0;font-weight:600;overflow-wrap:anywhere;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.score-name .chip{font-size:.7rem;padding:2px 7px}
+.table-view summary{cursor:pointer;color:var(--accent);font-weight:600}
+.table-wrap{overflow:auto;max-height:340px;margin-top:8px}
+.num-table{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
+.num-table th,.num-table td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right}
+.num-table th{position:sticky;top:0;background:var(--surface);color:var(--muted);font-weight:600}
+.num-table th:first-child,.num-table td:first-child{text-align:left}
+.fun-note{margin:0;font-size:.8rem;color:var(--muted)}
 
 /* Le carton */
 .carton{background:var(--carton);border:2px solid var(--carton-edge);border-radius:10px;padding:5px;display:grid;gap:3px}
@@ -271,6 +320,11 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
   <main>
     <!-- PARTIE -->
     <section class="view" id="view-partie" aria-label="Partie">
+      <div class="loto-line"><strong id="loto-name">Loto</strong><span><span id="loto-partie">Partie 1</span> · <button type="button" class="link" data-goto="stats">Stats</button></span></div>
+      <div class="banner" id="new-loto-banner" hidden>
+        <p id="new-loto-text"></p>
+        <div><button type="button" class="btn small primary" id="btn-loto-today">Commencer le loto d'aujourd'hui</button></div>
+      </div>
       <div class="modes" role="group" aria-label="On joue pour">
         <button type="button" data-mode="quine">Quine</button>
         <button type="button" data-mode="double">Double quine</button>
@@ -310,7 +364,8 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
         </div>
         <div class="draw-actions">
           <button type="button" class="btn ghost small" id="btn-board" aria-expanded="false">Tableau 1–90</button>
-          <button type="button" class="btn ghost small" id="btn-new-game">Nouvelle partie</button>
+          <button type="button" class="btn ghost small" id="btn-next-game">Partie suivante</button>
+          <button type="button" class="btn ghost small" id="btn-new-loto">Nouveau loto</button>
         </div>
       </div>
 
@@ -378,6 +433,14 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
     </section>
 
     <!-- RÉGLAGES -->
+    <section class="view" id="view-stats" aria-label="Stats" hidden>
+      <div class="modes seg2" role="group" aria-label="Période des stats">
+        <button type="button" data-scope="loto">Ce loto</button>
+        <button type="button" data-scope="all">Tous les lotos</button>
+      </div>
+      <div class="view" id="stats-body"></div>
+    </section>
+
     <section class="view" id="view-reglages" aria-label="Réglages" hidden>
       <div class="panel" id="engine-panel">
         <h2>Lecture des photos</h2>
@@ -415,6 +478,7 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
         <div class="row-btns">
           <button type="button" class="btn small danger" id="btn-reset-game">Effacer les numéros sortis</button>
           <button type="button" class="btn small danger" id="btn-reset-cards">Supprimer tous les cartons</button>
+          <button type="button" class="btn small danger" id="btn-reset-stats">Effacer les stats</button>
         </div>
       </div>
     </section>
@@ -425,6 +489,7 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
   <div class="tabbar-inner">
     <button type="button" class="tab" data-tab="partie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>Partie</button>
     <button type="button" class="tab" data-tab="cartons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M3 14h18M9 6v12M15 6v12"/></svg>Cartons<span class="count" id="tab-count" hidden></span></button>
+    <button type="button" class="tab" data-tab="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/></svg>Stats</button>
     <button type="button" class="tab" data-tab="reglages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Réglages</button>
   </div>
 </nav>
@@ -502,9 +567,27 @@ function defaultState() {
     demo: true,
     mode: 'quine',
     nextNo: 1,
-    settings: { sound: true, vibrate: true, wake: true, filter: 'all' },
+    settings: { sound: true, vibrate: true, wake: true, filter: 'all', statsScope: 'loto' },
+    lotos: [],      // [{id, name, startedAt, parties: [{d: '3.21.40…' (ordre de sortie), at, w: {quine: 1…}}]}]
+    lotoId: '',
+    wins: {},       // cartons gagnants annoncés dans la partie en cours, par mode
     updatedAt: 0,
   };
+}
+function cleanWins(w) {
+  const o = {};
+  for (const k of Object.keys(MODES)) { const v = Number(w && w[k]) || 0; if (v > 0) o[k] = Math.min(v, 999); }
+  return o;
+}
+function cleanLotos(list) {
+  return (Array.isArray(list) ? list : []).map(l => (l && typeof l === 'object' ? {
+    id: String(l.id || uid()),
+    name: String(l.name || 'Loto').slice(0, 60),
+    startedAt: Number(l.startedAt) || Date.now(),
+    parties: (Array.isArray(l.parties) ? l.parties : [])
+      .map(x => ({ d: String((x && x.d) || '').replace(/[^0-9.]/g, '').slice(0, 400), at: Number(x && x.at) || 0, w: cleanWins(x && x.w) }))
+      .filter(x => x.d),
+  } : null)).filter(Boolean).slice(-300);
 }
 function cleanCard(c) {
   if (!c || !Array.isArray(c.rows)) return null;
@@ -531,6 +614,9 @@ function normalize(s) {
   if (!MODES[out.mode]) out.mode = 'quine';
   out.nextNo = Math.max(1, Number(out.nextNo) || 1);
   out.demo = s.demo === true;
+  out.lotos = cleanLotos(s.lotos);
+  out.lotoId = String(s.lotoId || '');
+  out.wins = cleanWins(s.wins);
   out.updatedAt = Number(s.updatedAt) || 0;
   return out;
 }
@@ -718,10 +804,12 @@ function announce(list, kicker) {
     + (list.length > shown.length ? `<p class="win-more">et ${plural(list.length - shown.length, 'autre carton', 'autres cartons')}</p>` : '');
   const next = $('#win-next');
   if (mode.next) { next.textContent = `Passer au ${mode.next === 'double' ? 'jeu de la double quine' : 'carton plein'}`; next.dataset.next = mode.next; }
-  else { next.textContent = 'Nouvelle partie'; next.dataset.next = 'new'; }
+  else { next.textContent = 'Partie suivante'; next.dataset.next = 'new'; }
   $('#win').hidden = false;
   $('#win-close').focus();
   Sound.fanfare();
+  state.wins[state.mode] = (state.wins[state.mode] || 0) + list.length;
+  commit({ render: false });
   if (state.settings.vibrate) { try { navigator.vibrate && navigator.vibrate([250, 100, 250, 100, 500]); } catch (e) { /* non supporté */ } }
 }
 function closeWin() { $('#win').hidden = true; }
@@ -1367,7 +1455,14 @@ function ask(message, okLabel, danger = false) {
 }
 function renderHeader() {
   const mode = MODES[state.mode];
-  $('#top-meta').innerHTML = `<strong>${mode.label}</strong><br>${plural(state.drawn.length, 'numéro', 'numéros')}`;
+  const loto = currentLoto();
+  const k = loto.parties.length + 1;
+  $('#top-meta').innerHTML = `<strong>${mode.label}</strong><br>Partie ${k} · ${plural(state.drawn.length, 'numéro', 'numéros')}`;
+  $('#loto-name').textContent = loto.name;
+  $('#loto-partie').textContent = `Partie ${k}`;
+  const stale = !sameDay(loto.startedAt, Date.now()) && loto.parties.length > 0 && !state.drawn.length;
+  $('#new-loto-banner').hidden = !stale;
+  if (stale) $('#new-loto-text').textContent = `Ton dernier loto date du ${new Date(loto.startedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}. Nouveau loto aujourd'hui ?`;
   const n = state.pending.length;
   const tc = $('#tab-count');
   tc.hidden = !n;
@@ -1384,10 +1479,169 @@ function renderAll() {
   renderGame();
   renderCardsView();
   renderSettings();
+  if (currentView === 'stats') renderStats();
+}
+
+/* ---------- Lotos et parties ---------- */
+const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+function lotoName(ts) {
+  const base = 'Loto du ' + new Date(ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+  const same = state.lotos.filter(l => l.name === base || l.name.startsWith(base + ' (')).length;
+  return same ? `${base} (${same + 1})` : base;
+}
+function currentLoto() {
+  let l = state.lotos.find(x => x.id === state.lotoId);
+  if (!l) {
+    l = { id: uid(), name: lotoName(Date.now()), startedAt: Date.now(), parties: [] };
+    state.lotos.push(l);
+    state.lotoId = l.id;
+  }
+  return l;
+}
+// Range la partie en cours dans les stats du loto (sauf numéros d'exemple), puis la vide.
+function archivePartie() {
+  const loto = currentLoto();
+  if (state.drawn.length && !state.demo) loto.parties.push({ d: state.drawn.join('.'), at: Date.now(), w: cleanWins(state.wins) });
+  state.drawn = []; state.mode = 'quine'; state.demo = false; state.wins = {};
+}
+function nextPartie() {
+  archivePartie();
+  commit();
+  toast(`Partie ${currentLoto().parties.length + 1} : on joue la quine`);
+}
+function startNewLoto() {
+  archivePartie();
+  const l = { id: uid(), name: lotoName(Date.now()), startedAt: Date.now(), parties: [] };
+  state.lotos.push(l);
+  state.lotoId = l.id;
+  commit();
+  toast(`${l.name} : c'est parti !`);
+}
+
+/* ---------- Stats ---------- */
+const pc = x => `${Math.round(x * 100)}\u202f%`;
+let statSel = 0;
+function computeStats(scope) {
+  const lotos = scope === 'loto' ? [currentLoto()] : state.lotos.slice().sort((a, b) => a.startedAt - b.startedAt);
+  const parties = [];
+  for (const l of lotos) for (const x of l.parties) parties.push({ nums: x.d.split('.').map(Number).filter(validNum), w: x.w || {} });
+  if (state.drawn.length && !state.demo) parties.push({ nums: state.drawn.slice(), w: state.wins || {}, current: true });
+  const P = parties.length;
+  const count = new Array(91).fill(0);
+  const last = new Array(91).fill(-1);
+  let balls = 0;
+  parties.forEach((x, i) => { for (const n of new Set(x.nums)) { count[n]++; last[n] = i; } balls += x.nums.length; });
+  const pct = n => (P ? count[n] / P : 0);
+  const avg = P ? balls / (90 * P) : 0;
+  const late = n => (last[n] < 0 ? P : P - 1 - last[n]);
+  const wins = { quine: 0, double: 0, plein: 0 };
+  for (const x of parties) for (const k of Object.keys(wins)) wins[k] += Number(x.w[k]) || 0;
+  const nums = Array.from({ length: 90 }, (_, i) => i + 1);
+  const maxDev = Math.max(0, ...nums.map(n => Math.abs(pct(n) - avg)));
+  return { P, balls, count, pct, avg, late, wins, nums, maxDev, lotos: lotos.filter(l => l.parties.length).length, current: parties.some(x => x.current) };
+}
+function heatStyle(S, n) {
+  if (!S.maxDev) return '';
+  const t = (S.pct(n) - S.avg) / S.maxDev;
+  const strength = Math.round(Math.min(1, Math.abs(t)) * 90);
+  if (strength < 6) return '';
+  const hue = t > 0 ? 'var(--hot)' : 'var(--cold)';
+  const ink = strength > 55 ? (t > 0 ? 'var(--on-hot)' : 'var(--on-cold)') : 'var(--ink)';
+  return `background:color-mix(in oklab, ${hue} ${strength}%, var(--surface-2));color:${ink}`;
+}
+function rankRow(n, S, cold) {
+  const v = S.pct(n);
+  return `<li class="rank"><span class="ball-chip${cold ? ' cold' : ''}">${n}</span>
+    <div class="track" role="img" aria-label="${n} : sorti dans ${pc(v)} des parties"><span class="fill${cold ? ' cold' : ''}" style="width:${(v * 100).toFixed(1)}%"></span><span class="avg" style="left:${(S.avg * 100).toFixed(1)}%"></span></div>
+    <span class="val">${pc(v)}<small>${S.count[n]}/${S.P}</small></span></li>`;
+}
+function heatDetail(S, n) {
+  if (!n) return 'Touche un numéro pour voir son détail.';
+  const late = S.late(n);
+  const when = S.count[n] === 0 ? 'Jamais sorti sur cette période.' : late === 0 ? 'Sorti à la dernière partie.' : `Pas sorti depuis ${plural(late, 'partie', 'parties')}.`;
+  return `<strong>Le ${n}</strong> : sorti dans ${plural(S.count[n], 'partie', 'parties')} sur ${S.P} (${pc(S.pct(n))}, moyenne ${pc(S.avg)}). ${when}`;
+}
+function cardScores(S) {
+  const real = state.cards.filter(c => c.active && !c.example && c.rows.some(r => r.length));
+  const pool = (real.length ? real : state.cards.filter(c => c.active && c.rows.some(r => r.length))).map(c => ({ c, pending: false }))
+    .concat(state.pending.filter(c => c.rows.some(r => r.length)).map(c => ({ c, pending: true })));
+  return pool.map(x => {
+    const nums = [...new Set(x.c.rows.flat())];
+    const score = nums.reduce((t, n) => t + S.pct(n), 0) / nums.length;
+    return { ...x, score, delta: score - S.avg };
+  }).sort((a, b) => b.score - a.score);
+}
+function renderStats() {
+  const scope = state.settings.statsScope === 'all' ? 'all' : 'loto';
+  $$('[data-scope]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scope === scope)));
+  const S = computeStats(scope);
+  const body = $('#stats-body');
+  const loto = currentLoto();
+  if (!S.P) {
+    body.innerHTML = `<div class="empty"><p>${scope === 'loto' ? `Pas encore de numéro dans « ${esc(loto.name)} ».` : 'Pas encore de partie enregistrée.'} Les stats se remplissent dès que tu tapes les numéros dans l'onglet Partie.</p><button type="button" class="btn primary" data-goto="partie">Aller à la partie</button></div>`;
+    return;
+  }
+  const byPct = S.nums.slice().sort((a, b) => S.pct(b) - S.pct(a) || a - b);
+  const hot = byPct.slice(0, 10);
+  const cold = S.nums.slice().sort((a, b) => S.pct(a) - S.pct(b) || a - b).slice(0, 10);
+  const late = S.nums.filter(n => S.late(n) >= 2).sort((a, b) => S.late(b) - S.late(a) || a - b).slice(0, 10);
+  const scores = cardScores(S);
+  const shownScores = scores.slice(0, 12);
+  const winsTotal = S.wins.quine + S.wins.double + S.wins.plein;
+  const scopeLine = scope === 'loto'
+    ? `${esc(loto.name)} · ${plural(S.P, 'partie', 'parties')}${S.current ? ', dont celle en cours' : ''}`
+    : `${plural(S.lotos || 1, 'loto', 'lotos')} · ${plural(S.P, 'partie', 'parties')}${S.current ? ', dont celle en cours' : ''}`;
+  body.innerHTML = `
+    <p class="stat-sub">${scopeLine}</p>
+    <div class="tiles">
+      <div class="tile"><b>${S.P}</b><span>${S.P > 1 ? 'parties' : 'partie'}</span></div>
+      <div class="tile"><b>${S.balls}</b><span>boules tirées</span></div>
+      <div class="tile"><b>${Math.round(S.balls / S.P)}</b><span>boules par partie</span></div>
+    </div>
+    ${winsTotal ? `<div class="wins"><span class="chip win">${plural(S.wins.quine, 'quine', 'quines')}</span><span class="chip win">${plural(S.wins.double, 'double quine', 'doubles quines')}</span><span class="chip win">${plural(S.wins.plein, 'carton plein', 'cartons pleins')}</span><span class="stat-sub">sur tes cartons</span></div>` : ''}
+
+    <div class="stat-card">
+      <h2>Ceux qui sortent le plus</h2>
+      <p class="stat-sub">% des parties où le numéro est sorti. Le trait = la moyenne (${pc(S.avg)}).</p>
+      <ol class="ranks">${hot.map(n => rankRow(n, S, false)).join('')}</ol>
+    </div>
+
+    <div class="stat-card">
+      <h2>Ceux qui sortent le moins</h2>
+      <ol class="ranks">${cold.map(n => rankRow(n, S, true)).join('')}</ol>
+    </div>
+
+    <div class="stat-card">
+      <h2>Les 90 numéros</h2>
+      <div class="heat" id="heat">${S.nums.map(n => `<button type="button" data-heat="${n}" aria-pressed="${n === statSel}" style="${heatStyle(S, n)}" aria-label="${n} : ${pc(S.pct(n))}">${n}</button>`).join('')}</div>
+      <div class="heat-legend" aria-hidden="true"><span>sort moins</span><span class="heat-scale"></span><span>sort plus</span></div>
+      <p class="heat-detail" id="heat-detail" aria-live="polite">${heatDetail(S, statSel)}</p>
+      <details class="table-view"><summary>Voir le tableau complet</summary>
+        <div class="table-wrap"><table class="num-table"><thead><tr><th>N°</th><th>Sorties</th><th>%</th><th>Absent depuis</th></tr></thead>
+        <tbody>${byPct.map(n => `<tr><td>${n}</td><td>${S.count[n]}/${S.P}</td><td>${pc(S.pct(n))}</td><td>${S.count[n] ? (S.late(n) ? plural(S.late(n), 'partie', 'parties') : '—') : 'jamais sorti'}</td></tr>`).join('')}</tbody></table></div>
+      </details>
+    </div>
+
+    ${late.length ? `<div class="stat-card">
+      <h2>Les retardataires</h2>
+      <p class="stat-sub">Pas sortis depuis plusieurs parties.</p>
+      <div class="late">${late.map(n => `<span class="late-item"><span class="ball-chip flat">${n}</span>${S.count[n] ? plural(S.late(n), 'partie', 'parties') : 'jamais'}</span>`).join('')}</div>
+    </div>` : ''}
+
+    ${scores.length ? `<div class="stat-card scores">
+      <h2>Tes cartons, du plus chaud au plus froid</h2>
+      <p class="stat-sub">Moyenne des % de leurs 15 numéros. À l'entracte, photographie les cartons proposés dans l'onglet Cartons : ils sont classés ici avant même d'être validés.</p>
+      <ol class="ranks">${shownScores.map(x => `<li class="rank"><span class="score-name">${esc(cardName(x.c) === 'Carton sans nom' && x.c.numero ? 'N° ' + x.c.numero : cardName(x.c))}${x.pending ? '<span class="chip near">à vérifier</span>' : ''}</span>
+        <div class="track" role="img" aria-label="${pc(x.score)}"><span class="fill${x.delta < 0 ? ' cold' : ''}" style="width:${(x.score * 100).toFixed(1)}%"></span><span class="avg" style="left:${(S.avg * 100).toFixed(1)}%"></span></div>
+        <span class="val">${pc(x.score)}<small>${x.delta >= 0 ? '+' : '−'}${Math.abs(Math.round(x.delta * 100))} pts</small></span></li>`).join('')}</ol>
+      ${scores.length > shownScores.length ? `<p class="stat-sub">et ${plural(scores.length - shownScores.length, 'autre carton', 'autres cartons')}</p>` : ''}
+    </div>` : ''}
+
+    <p class="fun-note">Pour le plaisir : à chaque tirage, toutes les boules ont la même chance de sortir. Ces stats montrent seulement ce qui est déjà sorti.</p>`;
 }
 
 /* ---------- Navigation ---------- */
-const VIEWS = ['partie', 'cartons', 'reglages'];
+const VIEWS = ['partie', 'cartons', 'stats', 'reglages'];
 let currentView = 'partie';
 function showView(v) {
   if (!VIEWS.includes(v)) v = 'partie';
@@ -1396,6 +1650,7 @@ function showView(v) {
   $$('.tab').forEach(t => t.toggleAttribute('aria-current', false));
   $(`.tab[data-tab="${v}"]`).setAttribute('aria-current', 'page');
   window.scrollTo(0, 0);
+  if (v === 'stats') renderStats();
   updateWake();
 }
 function goto(v) {
@@ -1429,17 +1684,33 @@ $('#board').addEventListener('click', e => {
   const n = Number(b.dataset.n);
   if (state.drawn.includes(n)) removeDrawn(n); else addDrawn(n);
 });
-$('#btn-new-game').addEventListener('click', async () => {
-  if (state.drawn.length && !(await ask(`Effacer les ${state.drawn.length} numéros sortis ? Tes cartons sont gardés.`, 'Nouvelle partie', true))) return;
-  state.drawn = []; state.mode = 'quine'; state.demo = false;
-  commit();
-  toast('Nouvelle partie : on joue la quine');
+$('#btn-next-game').addEventListener('click', async () => {
+  if (!state.drawn.length) { toast('Aucun numéro dans cette partie'); return; }
+  const k = currentLoto().parties.length + 1;
+  const msg = state.demo ? 'Effacer les numéros d\'exemple et commencer la partie ?' : `Ranger les ${state.drawn.length} numéros de la partie ${k} dans les stats et passer à la partie ${k + 1} ?`;
+  if (!(await ask(msg, 'Partie suivante'))) return;
+  nextPartie();
+});
+$('#btn-new-loto').addEventListener('click', async () => {
+  const loto = currentLoto();
+  if (!(await ask(`Terminer « ${loto.name} » et commencer un nouveau loto ?${state.drawn.length && !state.demo ? ' La partie en cours est rangée dans les stats.' : ''}`, 'Nouveau loto'))) return;
+  startNewLoto();
+});
+$('#btn-loto-today').addEventListener('click', startNewLoto);
+$$('[data-scope]').forEach(b => b.addEventListener('click', () => { state.settings.statsScope = b.dataset.scope; commit(); }));
+$('#stats-body').addEventListener('click', e => {
+  const b = e.target.closest('[data-heat]');
+  if (!b) return;
+  statSel = Number(b.dataset.heat) === statSel ? 0 : Number(b.dataset.heat);
+  const S = computeStats(state.settings.statsScope === 'all' ? 'all' : 'loto');
+  $$('#heat [data-heat]').forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.heat) === statSel)));
+  $('#heat-detail').innerHTML = heatDetail(S, statSel);
 });
 $('#win-close').addEventListener('click', closeWin);
 $('#win-next').addEventListener('click', async () => {
   const next = $('#win-next').dataset.next;
   closeWin();
-  if (next === 'new') { $('#btn-new-game').click(); return; }
+  if (next === 'new') { nextPartie(); return; }
   setMode(next);
   toast(`On joue maintenant : ${MODES[next].label}`);
 });
@@ -1534,20 +1805,34 @@ $('#btn-import').addEventListener('click', () => {
   let added = 0;
   for (const c of incoming) {
     if (findTwin(c)) continue;
-    state.cards.push({ ...c, id: uid(), example: false, label: c.label || `Carton ${state.nextNo++}` });
+    state.cards.push({ ...c, id: uid(), example: false, label: c.label || (c.numero ? `N° ${c.numero}` : `Carton ${state.nextNo++}`) });
     added++;
   }
   commit();
   toast(`${plural(added, 'carton importé', 'cartons importés')}`);
 });
-$('#btn-reset-game').addEventListener('click', () => $('#btn-new-game').click());
+$('#btn-reset-game').addEventListener('click', async () => {
+  if (!state.drawn.length) { toast('Aucun numéro à effacer'); return; }
+  if (!(await ask(`Effacer les ${state.drawn.length} numéros de la partie en cours, sans les compter dans les stats ?`, 'Effacer', true))) return;
+  state.drawn = []; state.mode = 'quine'; state.demo = false; state.wins = {};
+  commit();
+  toast('Numéros effacés');
+});
+$('#btn-reset-stats').addEventListener('click', async () => {
+  const n = state.lotos.reduce((t, l) => t + l.parties.length, 0);
+  if (!(await ask(`Effacer toutes les stats (${plural(n, 'partie', 'parties')}) ? C'est définitif.`, 'Effacer les stats', true))) return;
+  state.lotos = []; state.lotoId = '';
+  commit();
+  toast('Stats effacées');
+});
 $('#btn-reset-cards').addEventListener('click', async () => {
   if (!(await ask(`Supprimer les ${state.cards.length} cartons et ceux à vérifier ? C'est définitif.`, 'Tout supprimer', true))) return;
   state.cards = []; state.pending = []; state.drawn = []; state.demo = false; state.nextNo = 1;
   commit();
   toast('Tous les cartons sont supprimés');
 });
-document.addEventListener('visibilitychange', updateWake);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { clearTimeout(saveTimer); saveLocal(); } updateWake(); });
+window.addEventListener('pagehide', () => { clearTimeout(saveTimer); saveLocal(); });
 $('#photo-rotate').addEventListener('click', () => { photo.rot = (photo.rot + 1) % 4; drawPhoto(); });
 $('#photo-zoom').addEventListener('click', () => { photo.zoom = !photo.zoom; drawPhoto(); });
 $('#photo-close').addEventListener('click', () => { $('#photo').hidden = true; });
