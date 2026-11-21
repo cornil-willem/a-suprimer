@@ -124,29 +124,28 @@ main{padding-bottom:calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom,0px
 
 /* Mode de jeu */
 .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:var(--surface-2);border-radius:999px}
-.modes button{border:0;background:none;border-radius:999px;padding:9px 6px;font-weight:600;font-size:.88rem;color:var(--muted);white-space:nowrap}
+.modes button{border:0;background:none;border-radius:999px;padding:7px 6px;font-weight:600;font-size:.88rem;color:var(--muted);white-space:nowrap}
 .modes button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 
 /* Tirage */
-.draw{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px}
-.balls{display:flex;align-items:center;gap:14px;min-width:0}
-.ball{width:78px;aspect-ratio:1;border-radius:50%;flex:none;display:grid;place-items:center;background:radial-gradient(circle at 32% 28%,var(--ball-hi),var(--jeton-solid) 62%);box-shadow:inset -6px -8px 0 rgba(0,0,0,.14)}
-.ball span{width:60%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:var(--ball-label);color:var(--ball-label-ink);font:800 1.55rem/1 var(--font-display);font-variant-numeric:tabular-nums}
+.draw{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:10px;display:grid;gap:10px}
+.draw-top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.draw-mid{display:grid;gap:6px;min-width:0}
+.undo{align-self:stretch;padding-inline:12px}
+.ball{width:58px;aspect-ratio:1;border-radius:50%;flex:none;display:grid;place-items:center;background:radial-gradient(circle at 32% 28%,var(--ball-hi),var(--jeton-solid) 62%);box-shadow:inset -6px -8px 0 rgba(0,0,0,.14)}
+.ball span{width:60%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:var(--ball-label);color:var(--ball-label-ink);font:800 1.2rem/1 var(--font-display);font-variant-numeric:tabular-nums}
 .ball.empty{background:var(--surface-2);box-shadow:none}
 .ball.empty span{background:var(--bg);color:var(--muted);font-size:1.1rem}
 .ball.pop{animation:pop .35s ease-out}
 @keyframes pop{0%{transform:scale(.6) rotate(-40deg)}70%{transform:scale(1.08)}100%{transform:none}}
-.recent-wrap{min-width:0;display:grid;gap:4px}
-.recent-label{font-size:.78rem;color:var(--muted)}
-.recent{display:flex;flex-wrap:wrap;gap:6px}
-.mini{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--jeton-solid);font:700 .9rem/1 var(--font-display);font-variant-numeric:tabular-nums}
-.entry{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}
-.entry-display{min-height:54px;border-radius:12px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font:800 2rem/1 var(--font-display);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.recent{display:flex;flex-wrap:nowrap;gap:5px;overflow:hidden;min-height:26px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent)}
+.mini{width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;border:2px solid var(--jeton-solid);font:700 .74rem/1 var(--font-display);font-variant-numeric:tabular-nums}
+.entry-display{min-height:44px;border-radius:12px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font:800 1.75rem/1 var(--font-display);letter-spacing:.06em;font-variant-numeric:tabular-nums}
 .entry-display.placeholder{font:500 .95rem var(--font-body);letter-spacing:0;color:var(--muted)}
 .entry-display.shake{animation:shake .3s}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.key{height:54px;border:0;border-radius:12px;background:var(--surface-2);font:700 1.45rem/1 var(--font-display);display:grid;place-items:center}
+.key{height:48px;border:0;border-radius:12px;background:var(--surface-2);font:700 1.45rem/1 var(--font-display);display:grid;place-items:center}
 .key:active{transform:scale(.96)}
 .key svg{width:24px;height:24px}
 .key.ok{background:var(--accent);color:var(--accent-ink);font-size:1.15rem}
@@ -190,7 +189,9 @@ main{padding-bottom:calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom,0px
 .empty p{margin:0;color:var(--muted)}
 
 /* Loto en cours */
-.loto-line{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:.88rem;color:var(--muted)}
+.loto-line{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.88rem;color:var(--muted)}
+.loto-id{min-width:0}
+.loto-line .btn{flex:none}
 .loto-line strong{color:var(--ink);font-family:var(--font-display);font-weight:700;font-size:1rem}
 
 /* Stats */
@@ -308,7 +309,7 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
 .toast{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + 14px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);z-index:30;max-width:calc(100% - 32px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-@media (min-width:560px){.ball{width:92px}.ball span{font-size:1.8rem}}
+@media (min-width:560px){.ball{width:72px}.ball span{font-size:1.5rem}.key{height:54px}}
 </style>
 
 <div class="app">
@@ -320,7 +321,7 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
   <main>
     <!-- PARTIE -->
     <section class="view" id="view-partie" aria-label="Partie">
-      <div class="loto-line"><strong id="loto-name">Loto</strong><span><span id="loto-partie">Partie 1</span> · <button type="button" class="link" data-goto="stats">Stats</button></span></div>
+      <div class="loto-line"><span class="loto-id"><strong id="loto-name">Loto</strong> · <span id="loto-partie">Partie 1</span></span><button type="button" class="btn small ghost" id="btn-next-game">Partie suivante</button></div>
       <div class="banner" id="new-loto-banner" hidden>
         <p id="new-loto-text"></p>
         <div><button type="button" class="btn small primary" id="btn-loto-today">Commencer le loto d'aujourd'hui</button></div>
@@ -337,16 +338,13 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
       </div>
 
       <div class="draw">
-        <div class="balls">
+        <div class="draw-top">
           <div class="ball empty" id="last-ball" aria-live="polite"><span>–</span></div>
-          <div class="recent-wrap">
-            <span class="recent-label" id="recent-label">Aucun numéro sorti</span>
-            <div class="recent" id="recent"></div>
+          <div class="draw-mid">
+            <div class="entry-display placeholder" id="entry-display">Tape le numéro</div>
+            <div class="recent" id="recent" aria-label="Numéros précédents"></div>
           </div>
-        </div>
-        <div class="entry">
-          <div class="entry-display placeholder" id="entry-display">Tape le numéro annoncé</div>
-          <button type="button" class="btn ghost" id="btn-undo" title="Retirer le dernier numéro">Annuler</button>
+          <button type="button" class="btn ghost undo" id="btn-undo" title="Retirer le dernier numéro">Annuler</button>
         </div>
         <div class="keypad" id="keypad">
           <button type="button" class="key" data-k="1">1</button>
@@ -362,19 +360,9 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
           <button type="button" class="key" data-k="9">9</button>
           <button type="button" class="key ok" data-k="ok">OK</button>
         </div>
-        <div class="draw-actions">
-          <button type="button" class="btn ghost small" id="btn-board" aria-expanded="false">Tableau 1–90</button>
-          <button type="button" class="btn ghost small" id="btn-next-game">Partie suivante</button>
-          <button type="button" class="btn ghost small" id="btn-new-loto">Nouveau loto</button>
-        </div>
       </div>
 
-      <div class="board-wrap" id="board-wrap" hidden>
-        <p class="hint">Touche un numéro pour l'ajouter ou le retirer.</p>
-        <div class="board" id="board"></div>
-      </div>
-
-      <div class="status" id="status"></div>
+      <div class="status" id="status" aria-live="polite"></div>
 
       <div class="list-head">
         <h2 id="game-title">Mes cartons</h2>
@@ -387,6 +375,15 @@ textarea.in{min-height:110px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,mon
       <div class="empty" id="game-empty" hidden>
         <p>Aucun carton en jeu pour l'instant.</p>
         <button type="button" class="btn primary" data-goto="cartons">Ajouter mes cartons</button>
+      </div>
+
+      <div class="draw-actions">
+        <button type="button" class="btn ghost small" id="btn-board" aria-expanded="false">Tableau 1–90</button>
+        <button type="button" class="btn ghost small" id="btn-new-loto">Nouveau loto</button>
+      </div>
+      <div class="board-wrap" id="board-wrap" hidden>
+        <p class="hint">Touche un numéro pour l'ajouter ou le retirer.</p>
+        <div class="board" id="board"></div>
       </div>
     </section>
 
@@ -684,7 +681,7 @@ let lastAddedPop = false;
 function renderEntry(msg) {
   const el = $('#entry-display');
   if (msg) { el.textContent = msg; el.classList.add('placeholder'); return; }
-  el.textContent = entry || 'Tape le numéro annoncé';
+  el.textContent = entry || 'Tape le numéro';
   el.classList.toggle('placeholder', !entry);
 }
 function shakeEntry(msg) {
@@ -749,20 +746,24 @@ function renderGame() {
   if (lastAddedPop) { ball.classList.remove('pop'); void ball.offsetWidth; ball.classList.add('pop'); lastAddedPop = false; }
   const recent = state.drawn.slice(-9, -1).reverse();
   $('#recent').innerHTML = recent.map(n => `<span class="mini">${n}</span>`).join('');
-  $('#recent-label').textContent = state.drawn.length ? `${plural(state.drawn.length, 'numéro sorti', 'numéros sortis')}${recent.length ? ' · précédents :' : ''}` : 'Aucun numéro sorti';
   $('#btn-undo').disabled = !state.drawn.length;
 
   const evals = evaluateAll();
   evals.sort((a, b) => (b.win - a.win) || (a.missing - b.missing) || byLabel(a.card, b.card));
   const winners = evals.filter(e => e.win);
   const near = evals.filter(e => !e.win && e.missing === 1);
+  const near2 = evals.filter(e => !e.win && e.missing === 2);
+  const waits = [...new Set(near.flatMap(e => e.waiting))].sort((a, b) => a - b);
   const inactive = state.cards.filter(c => !c.active).length;
 
   const chips = [];
   if (!evals.length) chips.push('<span class="chip">Aucun carton en jeu</span>');
-  else if (winners.length) chips.push(`<span class="chip win">${mode.label} : ${plural(winners.length, 'carton gagnant', 'cartons gagnants')}</span>`);
-  else chips.push(`<span class="chip">${mode.label} : pas encore de gagnant${evals.length ? ` · au mieux il manque ${evals[0].missing}` : ''}</span>`);
-  if (near.length) chips.push(`<span class="chip near">${plural(near.length, 'carton', 'cartons')} à un numéro</span>`);
+  else {
+    if (winners.length) chips.push(`<span class="chip win">${mode.label} : ${plural(winners.length, 'carton gagnant', 'cartons gagnants')}</span>`);
+    if (near.length) chips.push(`<span class="chip near">${plural(near.length, 'carton', 'cartons')} à 1 numéro · ${waits.length > 1 ? 'attendent' : 'attend'} ${waits.slice(0, 10).join(', ')}${waits.length > 10 ? '…' : ''}</span>`);
+    if (near2.length) chips.push(`<span class="chip">${plural(near2.length, 'carton', 'cartons')} à 2 numéros</span>`);
+    if (!winners.length && !near.length && !near2.length) chips.push(`<span class="chip">${mode.label} : au mieux il manque ${evals[0].missing}</span>`);
+  }
   if (inactive) chips.push(`<span class="chip off">${plural(inactive, 'carton', 'cartons')} hors jeu</span>`);
   $('#status').innerHTML = chips.join('');
 
@@ -1676,7 +1677,7 @@ $('#btn-board').addEventListener('click', () => {
   const wrap = $('#board-wrap');
   wrap.hidden = !wrap.hidden;
   $('#btn-board').setAttribute('aria-expanded', String(!wrap.hidden));
-  if (!wrap.hidden) renderBoard();
+  if (!wrap.hidden) { renderBoard(); wrap.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 });
 $('#board').addEventListener('click', e => {
   const b = e.target.closest('[data-n]');
