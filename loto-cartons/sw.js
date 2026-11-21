@@ -1,6 +1,6 @@
 // Service worker : l'appli marche sans réseau pendant la partie.
 // Les pages de l'appli passent d'abord par le réseau (mises à jour), puis par le cache.
-const CACHE = 'loto-cartons-v1';
+const CACHE = 'loto-cartons-v2';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 const CDN_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
@@ -21,6 +21,7 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return; // lecture des photos : jamais en cache
   if (url.origin === self.location.origin) {
     event.respondWith(
       fetch(req)
