@@ -50,6 +50,10 @@ export async function POST(request) {
     if (err instanceof Anthropic.RateLimitError) return json({ error: 'Trop de photos d\'un coup. Attends une minute puis touche « Tout réessayer ».', pause: true }, 429);
     if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError) {
       console.error('AI Gateway refuse l\'accès', err.status, err.message);
+      const reason = err.error && err.error.error && err.error.error.type;
+      if (reason === 'customer_verification_required') {
+        return json({ error: 'Lecture pas encore activée : il faut ajouter une carte bancaire sur le compte Vercel (AI Gateway) pour débloquer les crédits gratuits. En attendant : scanne sur ta page claude.ai, puis « Coller mes cartons ».', pause: true }, 503);
+      }
       return json({ error: 'Lecture refusée par le service (crédits Vercel AI Gateway épuisés ou non activés).', pause: true }, 503);
     }
     if (err instanceof Anthropic.BadRequestError) return json({ error: 'Photo refusée par le service : ' + err.message }, 422);
