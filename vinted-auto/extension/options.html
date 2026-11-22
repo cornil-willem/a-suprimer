@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vinted Auto · Options</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { max-width: 760px; margin: 0 auto; padding: 16px; }
+    .grille { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    @media (max-width: 560px) { .grille { grid-template-columns: 1fr; } }
+    #enregistre { margin-left: 8px; }
+    .barre { position: sticky; bottom: 0; background: var(--fond); padding: 10px 0; border-top: 1px solid var(--bord); }
+  </style>
+</head>
+<body>
+  <h1>Vinted Auto · Options</h1>
+  <p class="doux">Tout reste dans ton Chrome. La clé API n'est envoyée qu'à Anthropic.</p>
+
+  <h2>Claude</h2>
+  <div class="carte">
+    <label for="apiKey">Clé API Claude</label>
+    <input id="apiKey" data-cle="apiKey" type="password" autocomplete="off" placeholder="sk-ant-...">
+    <p class="doux">À créer sur console.anthropic.com > API Keys. Payant à l'usage.</p>
+    <div class="grille">
+      <div>
+        <label for="modele">Modèle</label>
+        <select id="modele" data-cle="modele">
+          <option value="claude-opus-5-5">Claude Opus 5.5 (le meilleur, ~2 à 3 centimes par réponse)</option>
+          <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (bon, ~2x moins cher)</option>
+          <option value="claude-haiku-5-5">Claude Haiku 5.5 (simple, ~40x moins cher)</option>
+        </select>
+      </div>
+      <div>
+        <label for="effort">Effort de réflexion</label>
+        <select id="effort" data-cle="effort">
+          <option value="low">Faible (conseillé pour des messages courts)</option>
+          <option value="medium">Moyen</option>
+          <option value="high">Élevé</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <h2>Personnalité</h2>
+  <div class="carte">
+    <p class="doux">Comment "toi" tu réponds. Les règles anti-IA sont ajoutées automatiquement après ce texte.</p>
+    <textarea id="personnalite" data-cle="personnalite" rows="22"></textarea>
+    <div class="ligne" style="margin-top: 6px;">
+      <button id="resetPerso">Remettre la personnalité par défaut</button>
+    </div>
+  </div>
+
+  <h2>Tester sans toucher à Vinted</h2>
+  <div class="carte">
+    <label for="testAnnonce">Annonce</label>
+    <textarea id="testAnnonce" rows="3">Titre : Appareil photo argentique Minolta
+Prix : 35 €
+État : Bon état
+Description : Trouvé dans un grenier, je ne sais pas s'il fonctionne.</textarea>
+    <label for="testMessage">Message de l'acheteur (une ligne par message, en alternant acheteur / toi)</label>
+    <textarea id="testMessage" rows="3">Bonjour, est-ce que l'objectif est d'origine et est-ce que la cellule marche ?</textarea>
+    <div class="ligne" style="margin-top: 6px;">
+      <button id="tester" class="principal">Générer une réponse</button>
+      <span class="doux">Utilise ta clé API (coûte une réponse).</span>
+    </div>
+    <pre id="resultatTest" class="carte" style="display: none; margin-top: 8px;"></pre>
+  </div>
+
+  <h2>Compte Vinted</h2>
+  <div class="carte grille">
+    <div>
+      <label for="pseudo">Pseudo</label>
+      <input id="pseudo" data-cle="pseudo">
+    </div>
+    <div>
+      <label for="userId">ID Vinted (optionnel)</label>
+      <input id="userId" data-cle="userId" placeholder="lu automatiquement">
+    </div>
+    <div>
+      <label><input type="checkbox" data-cle="ouvrirOngletAuto"> Ouvrir un onglet Vinted épinglé si besoin</label>
+    </div>
+  </div>
+
+  <h2>Horaires et rythme</h2>
+  <div class="carte grille">
+    <div>
+      <label for="hDebut">Actif à partir de (heure)</label>
+      <input id="hDebut" data-cle="heures.debut" type="number" min="0" max="23">
+    </div>
+    <div>
+      <label for="hFin">Jusqu'à (heure)</label>
+      <input id="hFin" data-cle="heures.fin" type="number" min="1" max="24">
+    </div>
+    <div>
+      <label for="intervalle">Lire les messages toutes les (minutes)</label>
+      <input id="intervalle" data-cle="messages.intervalleMin" type="number" min="1" max="60">
+    </div>
+    <div>
+      <label for="maxPassage">Réponses max par passage</label>
+      <input id="maxPassage" data-cle="messages.maxParPassage" type="number" min="1" max="20">
+    </div>
+    <div>
+      <label for="delaiMin">Attendre avant de répondre : min (minutes)</label>
+      <input id="delaiMin" data-cle="messages.delaiReponseMin.0" type="number" min="0" max="120">
+    </div>
+    <div>
+      <label for="delaiMax">max (minutes)</label>
+      <input id="delaiMax" data-cle="messages.delaiReponseMin.1" type="number" min="0" max="240">
+    </div>
+    <div>
+      <label><input type="checkbox" data-cle="messages.actif"> Répondre aux messages</label>
+    </div>
+  </div>
+
+  <h2>Expérimental (pas encore testé sur un vrai compte)</h2>
+  <div class="carte">
+    <p class="alerte">Ces modules utilisent des routes Vinted non vérifiées. Lance d'abord le Diagnostic du popup et envoie-le à Claude.</p>
+
+    <label><input type="checkbox" data-cle="negociation.actif"> Négocier les offres tout seul</label>
+    <label for="prixMinPct">Accepter si l'offre atteint (% du prix affiché)</label>
+    <input id="prixMinPct" data-cle="negociation.prixMinPct" type="number" min="30" max="100">
+
+    <label><input type="checkbox" data-cle="offresLikes.actif"> Envoyer une offre aux personnes qui likent</label>
+    <div class="grille">
+      <div>
+        <label for="remise">Remise (%)</label>
+        <input id="remise" data-cle="offresLikes.remisePct" type="number" min="5" max="50">
+      </div>
+      <div>
+        <label for="maxJour">Offres max par jour</label>
+        <input id="maxJour" data-cle="offresLikes.maxParJour" type="number" min="1" max="100">
+      </div>
+    </div>
+
+    <label><input type="checkbox" data-cle="republication.actif"> Republier les annonces (supprime puis recrée)</label>
+    <div class="grille">
+      <div>
+        <label for="creneaux">Créneaux (séparés par des virgules)</label>
+        <input id="creneaux" data-cle="republication.creneaux" data-type="liste">
+      </div>
+      <div>
+        <label for="parCreneau">Annonces par créneau</label>
+        <input id="parCreneau" data-cle="republication.parCreneau" type="number" min="1" max="20">
+      </div>
+      <div>
+        <label for="ageMin">Seulement si l'annonce a plus de (jours)</label>
+        <input id="ageMin" data-cle="republication.ageMinJours" type="number" min="0" max="365">
+      </div>
+    </div>
+  </div>
+
+  <div class="barre ligne">
+    <button id="enregistrer" class="principal">Enregistrer</button>
+    <span id="enregistre" class="doux"></span>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

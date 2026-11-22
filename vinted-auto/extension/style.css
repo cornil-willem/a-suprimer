@@ -1,0 +1,69 @@
+:root {
+  --fond: #ffffff;
+  --texte: #1d2327;
+  --doux: #5f6b73;
+  --bord: #d9e0e4;
+  --carte: #f5f8f9;
+  --accent: #007782;
+  --accent-texte: #ffffff;
+  --alerte: #b3261e;
+  --alerte-fond: #fdecea;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #15191c;
+    --texte: #e6ebee;
+    --doux: #9aa6ad;
+    --bord: #2c3439;
+    --carte: #1d2327;
+    --accent: #2fb3bd;
+    --accent-texte: #0b1214;
+    --alerte: #ff8a80;
+    --alerte-fond: #3a1f1d;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+h1 { font-size: 16px; margin: 0; }
+h2 { font-size: 14px; margin: 16px 0 8px; }
+.doux { color: var(--doux); font-size: 12px; }
+button {
+  font: inherit;
+  border: 1px solid var(--bord);
+  background: var(--carte);
+  color: var(--texte);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+button.principal { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+input, select, textarea {
+  font: inherit;
+  color: var(--texte);
+  background: var(--fond);
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  padding: 6px 8px;
+  width: 100%;
+}
+textarea { resize: vertical; }
+input[type="checkbox"] { width: auto; }
+.carte {
+  background: var(--carte);
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.ligne { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.alerte { color: var(--alerte); background: var(--alerte-fond); border-radius: 6px; padding: 4px 6px; font-size: 12px; }
+pre { white-space: pre-wrap; word-break: break-word; font-size: 11px; max-height: 260px; overflow: auto; }
+label { display: block; margin: 8px 0 4px; font-weight: 600; }
+.journal div { font-size: 12px; padding: 3px 0; border-bottom: 1px solid var(--bord); }
+.journal .erreur { color: var(--alerte); }

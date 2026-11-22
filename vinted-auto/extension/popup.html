@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Vinted Auto</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { width: 380px; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div class="ligne" style="justify-content: space-between;">
+    <h1>Vinted Auto</h1>
+    <button id="options">Options</button>
+  </div>
+
+  <div class="carte" style="margin-top: 10px;">
+    <div class="ligne">
+      <label style="margin: 0;"><input type="checkbox" id="actif"> Activé</label>
+      <select id="mode" style="width: auto; margin-left: auto;">
+        <option value="brouillon">Brouillon (je valide)</option>
+        <option value="auto">Auto (envoi direct)</option>
+      </select>
+    </div>
+    <div id="avertissement" class="alerte" style="margin-top: 8px; display: none;"></div>
+  </div>
+
+  <div class="ligne">
+    <button id="lancer" class="principal">Lire les messages maintenant</button>
+    <button id="diagnostic">Diagnostic</button>
+  </div>
+
+  <h2>Brouillons <span id="nbBrouillons" class="doux"></span></h2>
+  <div id="brouillons"><p class="doux">Aucun brouillon.</p></div>
+
+  <div id="zoneDiagnostic" style="display: none;">
+    <h2>Diagnostic</h2>
+    <p class="doux">Aucun contenu de message ici, seulement des codes et des noms de champs. Copie-le et envoie-le à Claude.</p>
+    <button id="copier">Copier</button>
+    <pre id="rapport" class="carte"></pre>
+  </div>
+
+  <h2>Journal</h2>
+  <div id="journal" class="journal"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
