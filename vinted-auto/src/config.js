@@ -9,8 +9,14 @@ export const CONFIG_PAR_DEFAUT = {
   mode: "brouillon",
 
   // "modeles" : réponses toutes faites par mots-clés. Gratuit, sans clé.
+  // "local" : réponses toutes faites + IA locale (Ollama) pour le reste. Gratuit.
   // "claude" : réponses écrites par Claude. Payant (clé API).
   moteur: "modeles",
+  local: {
+    url: "http://localhost:11434",
+    // Modèle Ollama. "mistral-nemo" (12B) écrit bien le français. Plus léger : "mistral".
+    modele: "mistral-nemo",
+  },
   modeles: {
     // Ex. "sous 2 jours". Vide : "j'envoie dès que je peux".
     delaiEnvoi: "",

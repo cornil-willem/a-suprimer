@@ -175,7 +175,7 @@ export function repondreAvecModeles(conv, config = {}) {
   const trouvees = REGLES.filter((r) => r.motif.test(q)).slice(0, 2);
   if (!trouvees.length) {
     if (RIEN.test(q)) return fin({ reponse: "", besoin_humain: false, rien: true, raison: "pas besoin de répondre", regles: [] });
-    return fin({ reponse: "", besoin_humain: true, raison: "question pas reconnue, à toi de répondre", regles: [] });
+    return fin({ reponse: "", besoin_humain: true, inconnue: true, raison: "question pas reconnue, à toi de répondre", regles: [] });
   }
 
   const morceaux = trouvees.map((r) => {
@@ -189,6 +189,7 @@ export function repondreAvecModeles(conv, config = {}) {
     reponse: bonjour + morceaux.join(". "),
     besoin_humain: Boolean(avecHumain),
     raison: avecHumain?.raison || "",
+    memo: avecHumain?.raison || "",
     regles: trouvees.map((r) => r.id),
   });
 }

@@ -22,11 +22,23 @@
     <label for="moteur">Moteur</label>
     <select id="moteur" data-cle="moteur">
       <option value="modeles">Réponses modèles par mots-clés (gratuit)</option>
-      <option value="claude">Claude (payant, clé API nécessaire)</option>
+      <option value="local">Réponses modèles + IA locale Ollama pour le reste (gratuit)</option>
+      <option value="claude">Claude pour tout (payant, clé API nécessaire)</option>
     </select>
-    <p class="doux">Gratuit : phrases toutes faites selon la question (vraies ?, prix, photos, réservation, dispo...). Question pas reconnue : rien n'est envoyé, tu reçois une notification.</p>
+    <p class="doux">Modèles : phrases toutes faites selon la question (vraies ?, prix, photos, réservation, dispo...). Question pas reconnue : rien n'est envoyé, tu reçois une notification.<br>
+    IA locale : les questions pas reconnues sont écrites par une IA gratuite qui tourne sur ton PC (Ollama), avec la personnalité plus bas.</p>
     <label for="delaiEnvoi">Délai d'envoi (réponses modèles)</label>
     <input id="delaiEnvoi" data-cle="modeles.delaiEnvoi" placeholder="ex. sous 2 jours (vide : « j'envoie dès que je peux »)">
+    <div class="grille">
+      <div>
+        <label for="localModele">Modèle IA locale (Ollama)</label>
+        <input id="localModele" data-cle="local.modele" placeholder="mistral-nemo">
+      </div>
+      <div>
+        <label for="localUrl">Adresse d'Ollama</label>
+        <input id="localUrl" data-cle="local.url" placeholder="http://localhost:11434">
+      </div>
+    </div>
   </div>
 
   <h2>Claude (seulement si moteur Claude)</h2>
@@ -54,9 +66,9 @@
     </div>
   </div>
 
-  <h2>Personnalité (seulement si moteur Claude)</h2>
+  <h2>Personnalité (IA locale et Claude)</h2>
   <div class="carte">
-    <p class="doux">Comment Claude répond. Les règles anti-IA sont ajoutées automatiquement après ce texte. Le mode gratuit utilise ses propres phrases, tirées de cette personnalité.</p>
+    <p class="doux">Comment l'IA répond. Les règles anti-IA sont ajoutées automatiquement après ce texte. Le mode gratuit utilise ses propres phrases, tirées de cette personnalité.</p>
     <textarea id="personnalite" data-cle="personnalite" rows="22"></textarea>
     <div class="ligne" style="margin-top: 6px;">
       <button id="resetPerso">Remettre la personnalité par défaut</button>
@@ -72,7 +84,7 @@ Prix : 5 €</textarea>
     <textarea id="testMessage" rows="3">c'est des vraies ?</textarea>
     <div class="ligne" style="margin-top: 6px;">
       <button id="tester" class="principal">Générer une réponse</button>
-      <span class="doux">Gratuit en mode modèles. Avec Claude, coûte une réponse.</span>
+      <span class="doux">Gratuit en modèles et IA locale. Avec Claude, coûte une réponse.</span>
     </div>
     <pre id="resultatTest" class="carte" style="display: none; margin-top: 8px;"></pre>
   </div>
@@ -121,6 +133,13 @@ Prix : 5 €</textarea>
     <div>
       <label><input type="checkbox" data-cle="messages.actif"> Répondre aux messages</label>
     </div>
+  </div>
+
+  <h2>Fiches acheteurs</h2>
+  <div class="carte">
+    <p class="doux">Ce que l'extension retient de chaque acheteur (photos promises, ce qui l'intéresse...). L'IA les relit avant de répondre.</p>
+    <div id="fiches" class="journal"></div>
+    <div class="ligne" style="margin-top: 6px;"><button id="effacerFiches">Tout effacer</button></div>
   </div>
 
   <h2>Expérimental (pas encore testé sur un vrai compte)</h2>

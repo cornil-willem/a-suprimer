@@ -2,7 +2,8 @@
 import { CONFIG_PAR_DEFAUT, fusionnerConfig } from "./config.js";
 import { Vinted, normaliserConversation, decrireArticle } from "./vinted.js";
 import { genererReponse, expliquerErreurClaude } from "./claude.js";
-import { repondreAvecModeles } from "./modeles.js";
+import { genererReponseLocale } from "./local.js";
+import { produireReponse } from "./moteur.js";
 import { deciderOffre, prixOffreLike } from "./negociation.js";
 
 // ---------- Stockage ----------
@@ -13,7 +14,21 @@ const ETAT_VIDE = {
   likesTraites: {},
   offresLikesJour: { date: "", n: 0 },
   creneauxFaits: {},
+  fiches: {}, // acheteur -> { pseudo, notes: [{date, texte}], maj }
 };
+
+// Fiche par acheteur : ce qu'il faut retenir d'une conversation à l'autre.
+async function ajouterNote(cle, pseudo, texte) {
+  const etat = await lireEtat();
+  const fiche = etat.fiches[cle] || { pseudo, notes: [] };
+  fiche.pseudo = pseudo;
+  fiche.notes = [...fiche.notes, { date: new Date().toISOString(), texte }].slice(-10);
+  fiche.maj = new Date().toISOString();
+  etat.fiches[cle] = fiche;
+  const tri = Object.entries(etat.fiches).sort((a, b) => (b[1].maj || "").localeCompare(a[1].maj || ""));
+  etat.fiches = Object.fromEntries(tri.slice(0, 300));
+  await sauverEtat(etat);
+}
 
 async function lireConfig() {
   const { config } = await chrome.storage.local.get("config");
@@ -166,17 +181,21 @@ async function passeMessages(config, { forcer = false } = {}) {
   return { ok: true, traitees };
 }
 
-async function produireReponse(v, config, conv) {
-  if (config.moteur !== "claude") return repondreAvecModeles(conv, config);
-  const article = await v.lireArticle(conv.article.id).catch(() => null);
-  const annonce = article
-    ? decrireArticle(article)
-    : `Titre : ${conv.article.titre || "(inconnu)"}\n(description non disponible)`;
-  return genererReponse(config, { annonce, messages: conv.messages });
-}
+const MOTEURS = { genererClaude: genererReponse, genererLocal: genererReponseLocale };
 
 async function traiterMessage(v, config, conv) {
-  const r = await produireReponse(v, config, conv);
+  const cle = String(conv.acheteurId ?? conv.acheteur);
+  const fiche = (await lireEtat()).fiches[cle];
+  const r = await produireReponse(config, conv, fiche, {
+    ...MOTEURS,
+    lireAnnonce: async () => {
+      const article = await v.lireArticle(conv.article.id).catch(() => null);
+      return article
+        ? decrireArticle(article)
+        : `Titre : ${conv.article.titre || "(inconnu)"}\n(description non disponible)`;
+    },
+  });
+  if (r.memo) await ajouterNote(cle, conv.acheteur, r.memo);
   const question = conv.dernier.texte;
   if (r.rien) {
     await journal(`${conv.acheteur} : "${question}" (pas besoin de répondre)`);
@@ -420,8 +439,10 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
             de: i % 2 === 0 ? "acheteur" : "moi",
             texte,
           }));
-          if (config.moteur !== "claude") return repondreAvecModeles({ messages }, config);
-          return await genererReponse(config, { annonce: msg.annonce, messages });
+          return await produireReponse(config, { messages }, undefined, {
+            ...MOTEURS,
+            lireAnnonce: async () => msg.annonce,
+          });
         } catch (e) {
           return { erreur: expliquerErreurClaude(e) };
         }

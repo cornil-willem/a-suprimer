@@ -66,8 +66,9 @@ $("tester").onclick = async () => {
   const lignes = [
     `Réponse : ${r.reponse || "(aucune, tu réponds toi-même)"}`,
     `Besoin de toi : ${r.besoin_humain ? "oui" : "non"}${r.raison ? ` (${r.raison})` : ""}`,
-    r.regles ? `Règles reconnues : ${r.regles.join(", ") || "aucune"}` : `Essais : ${r.essais}`,
+    `Source : ${r.source === "ia-locale" ? "IA locale" : r.source === "claude" ? "Claude" : "réponses modèles"}${r.regles?.length ? ` (${r.regles.join(", ")})` : ""}${r.essais ? `, ${r.essais} essai(s)` : ""}`,
   ];
+  if (r.memo) lignes.push(`Retenu dans la fiche : ${r.memo}`);
   if (r.rien) lignes[0] = "Réponse : (aucune, pas besoin de répondre)";
   if (r.problemes?.length) {
     lignes.push(`Filtre anti-IA : ${r.problemes.map((p) => `${p.regle} "${p.extrait}"`).join(" ; ")}`);
@@ -75,4 +76,28 @@ $("tester").onclick = async () => {
   sortie.textContent = lignes.join("\n");
 };
 
+async function afficherFiches() {
+  const { etat = {} } = await chrome.storage.local.get("etat");
+  const zone = $("fiches");
+  zone.textContent = "";
+  const fiches = Object.values(etat.fiches || {}).sort((a, b) => (b.maj || "").localeCompare(a.maj || ""));
+  if (!fiches.length) {
+    zone.innerHTML = '<p class="doux">Aucune fiche pour l\'instant.</p>';
+    return;
+  }
+  for (const f of fiches.slice(0, 100)) {
+    const ligne = document.createElement("div");
+    ligne.textContent = `${f.pseudo} : ${f.notes.map((n) => `${n.date.slice(0, 10)} ${n.texte}`).join(" · ")}`;
+    zone.append(ligne);
+  }
+}
+
+$("effacerFiches").onclick = async () => {
+  if (!confirm("Effacer toutes les fiches acheteurs ?")) return;
+  const { etat = {} } = await chrome.storage.local.get("etat");
+  await chrome.storage.local.set({ etat: { ...etat, fiches: {} } });
+  afficherFiches();
+};
+
 charger();
+afficherFiches();

@@ -3,7 +3,9 @@
 Extension Chrome perso pour gérer les messages d'un compte Vinted (par défaut : le compte de Julie, géré par son frère). Elle tourne dans ton Chrome, sur la session Vinted déjà connectée.
 
 - **Gratuit par défaut** : réponses toutes faites selon la question (vraies ?, prix, photos, réservation, dispo, envoi...). Question pas reconnue : rien n'est envoyé, tu reçois une notification.
-- Option payante : réponses écrites par Claude avec la **personnalité** du compte, et un **filtre anti-IA** tiré des pages Wikipédia sur les signes d'écriture par IA.
+- **IA locale gratuite** (optionnel) : les questions pas reconnues sont écrites par une IA open source qui tourne sur ton PC avec Ollama, avec la **personnalité** du compte et une **fiche par acheteur**.
+- Option payante : réponses écrites par Claude.
+- Les réponses de l'IA (locale ou Claude) passent par un **filtre anti-IA** tiré des pages Wikipédia sur les signes d'écriture par IA.
 - Dans les deux cas : honnête, pas experte, ne garantit jamais l'authenticité des cartes.
 - Expérimental : négociation des offres, offres aux personnes qui likent, republication des annonces.
 
@@ -27,6 +29,26 @@ Elle ne marche que quand le PC est allumé (pas en veille) et que Chrome est ouv
 6. Dans le popup, clique **Diagnostic**, puis **Copier**. Envoie le résultat à Claude. Il ne contient aucun message, seulement des codes et des noms de champs. Il sert à vérifier que les routes Vinted répondent comme prévu.
 7. Coche **Activé**. Laisse le mode **Brouillon** au début : tu valides chaque réponse dans le popup avant envoi.
 8. Quand les brouillons te conviennent, passe en mode **Auto**.
+
+## IA locale gratuite (Ollama)
+
+À faire une seule fois, sur le PC où tourne Chrome :
+
+1. Installe Ollama : [ollama.com/download](https://ollama.com/download).
+2. Ouvre PowerShell et télécharge le modèle (environ 7 Go) :
+   ```
+   ollama pull mistral-nemo
+   ```
+   PC moins puissant : `ollama pull mistral` (environ 4 Go), puis mets `mistral` dans Options > Modèle IA locale.
+3. Autorise l'extension à parler à Ollama (sinon Ollama la refuse) :
+   ```
+   setx OLLAMA_ORIGINS "chrome-extension://*"
+   ```
+4. Quitte Ollama (icône près de l'horloge > Quit) et relance-le.
+5. Dans Options, choisis le moteur **Réponses modèles + IA locale**, puis **Enregistrer**.
+6. Teste une question que les modèles ne connaissent pas (ex. « elle date de quelle année ? ») dans **Tester sans toucher à Vinted**.
+
+Ollama doit rester lancé. Il démarre tout seul avec Windows après l'installation.
 
 ## Ce que fait chaque module
 
@@ -82,6 +104,9 @@ npm run build   # recompile extension/background.js à partir de src/
 | `src/background.js` | Planification, réponses, offres, republication, diagnostic |
 | `src/vinted.js` | Appels aux routes Vinted depuis l'onglet vinted.fr |
 | `src/modeles.js` | Réponses modèles gratuites (mots-clés) |
+| `src/local.js` | IA locale gratuite (Ollama) |
+| `src/moteur.js` | Choix du moteur (modèles, IA locale, Claude) |
+| `src/prompt.js` | Prompt commun aux IA et boucle de réécriture anti-IA |
 | `src/claude.js` | Appel à Claude (SDK officiel), boucle de réécriture anti-IA |
 | `src/anti-ia.js` | Règles anti-IA (prompt et contrôle) |
 | `src/personnalite.js` | Personnalité par défaut |
