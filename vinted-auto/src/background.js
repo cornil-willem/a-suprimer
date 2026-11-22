@@ -134,6 +134,7 @@ async function passeMessages(config, { forcer = false } = {}) {
   const etat = await lireEtat();
   const conversations = await v.listerConversations();
   let traitees = 0;
+  let lues = 0;
 
   for (const resume of conversations) {
     if (traitees >= config.messages.maxParPassage) break;
@@ -154,6 +155,7 @@ async function passeMessages(config, { forcer = false } = {}) {
       // Lectures espacées comme une personne qui parcourt sa messagerie (anti-bot de Vinted).
       await pause(aleatoire(800, 2000));
     }
+    lues++;
     const dernier = conv.dernier;
     suivi.vu = majVinted;
     etat.conversations[id] = suivi;
@@ -185,6 +187,7 @@ async function passeMessages(config, { forcer = false } = {}) {
     await pause(aleatoire(3000, 9000));
   }
 
+  if (forcer) await journal(`Lecture finie : ${lues} conversation(s) lue(s), ${traitees} à traiter`);
   // Recharge l'état : traiterMessage a pu ajouter des brouillons et du journal entre-temps.
   const frais = await lireEtat();
   frais.conversations = { ...frais.conversations, ...etat.conversations };
