@@ -127,3 +127,15 @@ test("rappels tu/vous et bonjour dans le prompt", async () => {
   assert.match(tu, /tutoie-le/);
   assert.match(tu, /pas de bonjour/);
 });
+
+test("conversation à relire : réponse prévue jamais oubliée", async () => {
+  const { aRelire } = await import("../src/moteur.js");
+  const resume = { id: 1, updated_at: "t1", unread: false };
+  assert.equal(aRelire(resume, {}), true, "jamais vue");
+  assert.equal(aRelire({ ...resume, updated_at: "t2" }, { vu: "t1" }), true, "changée sur Vinted");
+  assert.equal(aRelire({ ...resume, unread: true }, { vu: "t1" }), true, "non lue");
+  assert.equal(aRelire(resume, { vu: "t1" }), false, "rien de neuf");
+  // Julie a lu le message sur son téléphone pendant le délai : la réponse prévue doit quand même partir.
+  assert.equal(aRelire(resume, { vu: "t1", planifie: { messageId: "9" } }), true, "réponse prévue");
+  assert.equal(aRelire(resume, { vu: "t1", planifie: { messageId: "9" }, dernierTraite: "9" }), false, "déjà traitée");
+});

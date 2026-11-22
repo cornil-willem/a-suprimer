@@ -35,3 +35,14 @@ export function peutPartirSeule(r, config = {}) {
   if (!r.besoin_humain) return true;
   return r.source === "modeles" && Boolean(r.regles?.includes("photos"));
 }
+
+/**
+ * Faut-il relire cette conversation ? Oui si elle a changé sur Vinted, si elle est non lue,
+ * ou si une réponse prévue n'est pas encore faite (même si Julie l'a lue entre-temps,
+ * ou si l'essai précédent a échoué).
+ */
+export function aRelire(resume, suivi = {}) {
+  if (suivi.vu !== (resume.updated_at || resume.updated_at_ts || "")) return true;
+  if (resume.unread ?? resume.is_unread) return true;
+  return Boolean(suivi.planifie && suivi.planifie.messageId !== suivi.dernierTraite);
+}

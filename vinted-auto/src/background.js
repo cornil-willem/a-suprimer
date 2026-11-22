@@ -3,7 +3,7 @@ import { CONFIG_PAR_DEFAUT, fusionnerConfig } from "./config.js";
 import { Vinted, normaliserConversation, decrireArticle } from "./vinted.js";
 import { genererReponse, expliquerErreurClaude } from "./claude.js";
 import { genererReponseLocale } from "./local.js";
-import { produireReponse, peutPartirSeule } from "./moteur.js";
+import { produireReponse, peutPartirSeule, aRelire } from "./moteur.js";
 import { deciderOffre, prixOffreLike } from "./negociation.js";
 
 // ---------- Stockage ----------
@@ -141,9 +141,11 @@ async function passeMessages(config, { forcer = false } = {}) {
     const suivi = etat.conversations[id] || {};
     const majVinted = resume.updated_at || resume.updated_at_ts || "";
     // Vérifié le 2026-11-22 : l'inbox renvoie "unread" (pas "is_unread").
-    if (!forcer && suivi.vu === majVinted && !(resume.unread ?? resume.is_unread)) continue;
+    if (!forcer && !aRelire(resume, suivi)) continue;
 
     const conv = normaliserConversation(await v.lireConversation(id), v.userId);
+    // Lectures espacées comme une personne qui parcourt sa messagerie (anti-bot de Vinted).
+    await pause(aleatoire(800, 2000));
     const dernier = conv.dernier;
     suivi.vu = majVinted;
     etat.conversations[id] = suivi;
