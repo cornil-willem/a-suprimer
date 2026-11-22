@@ -49,7 +49,7 @@ test("bot, litige, fausses : la main à l'humain", () => {
 });
 
 test("question inconnue : rien envoyé, notification", () => {
-  const r = repondre("elle est de quelle édition la carte dracaufeu ?");
+  const r = repondre("ton frère les rangeait dans un classeur ?");
   assert.deepEqual([r.reponse, r.besoin_humain], ["", true]);
 });
 
@@ -81,11 +81,44 @@ test("pas deux fois la même phrase dans une conversation", () => {
 });
 
 test("toutes les phrases modèles passent le filtre anti-IA", () => {
-  for (const q of ["c'est des vraies ?", "pourquoi si peu cher ?", "photos ?", "réserver ?", "dernier prix ?", "tu les as eu où ?"]) {
+  for (const q of ["c'est des vraies ?", "pourquoi si peu cher ?", "photos ?", "réserver ?", "dernier prix ?", "tu les as eu où ?", "en quel état ?", "tu fais des échanges ?", "t'en as d'autres ?"]) {
     for (let i = 0; i < 10; i++) {
       const r = repondre(q);
       const v = verifierTexte(r.reponse);
       assert.equal(v.ok, true, `${r.reponse} -> ${JSON.stringify(v.problemes)}`);
     }
   }
+});
+
+test("autres façons de demander si c'est un bot", () => {
+  for (const q of ["tu es humaine ?", "c'est toi qui écris ?", "je parle à qui là ?", "c'est des réponses auto ?", "Vous êtes une IA ?"]) {
+    const r = repondre(q);
+    assert.deepEqual([r.regles, r.reponse, r.besoin_humain], [["bot"], "", true], q);
+  }
+  // "vraies" seul reste une question d'authenticité
+  assert.deepEqual(repondre("c'est des vraies cartes ?").regles, ["vraies"]);
+});
+
+test("détails, échanges, autres cartes : réponse modèle, rien d'inventé", () => {
+  const cas = {
+    "elle date de quelle année ?": "details",
+    "il y a des cartes holo dans le lot ?": "details",
+    "elles sont en quel état les cartes ?": "details",
+    "c'est quelle édition ?": "details",
+    "ça vaut combien en vrai, c'est quoi leur cote ?": "details",
+    "tu fais des échanges ?": "echange",
+    "Bonjour, je collectionne depuis longtemps, vous en avez d'autres comme ça ?": "autres",
+  };
+  for (const [question, id] of Object.entries(cas)) {
+    const r = repondre(question);
+    assert.deepEqual(r.regles, [id], question);
+    assert.equal(r.besoin_humain, false, question);
+  }
+  for (let i = 0; i < 10; i++) {
+    assert.doesNotMatch(repondre("Bonjour, vos cartes sont en quel état ?").reponse, /\bregarde les\b/);
+  }
+  // Demande de photos de l'état : la promesse de photos, pas "regarde les photos"
+  assert.deepEqual(repondre("tu peux m'envoyer des photos de l'état ?").regles, ["photos"]);
+  // "à côté" n'est pas une question de cote
+  assert.deepEqual(repondre("on peut payer à côté par paypal ?").regles, ["contact"]);
 });

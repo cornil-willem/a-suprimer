@@ -10,7 +10,7 @@ const config = {
   local: { url: "http://localhost:11434/", modele: "mistral-nemo" },
   modeles: { delaiEnvoi: "" },
 };
-const messages = [{ de: "acheteur", texte: "elle date de quelle année la carte ?" }];
+const messages = [{ de: "acheteur", texte: "ton frère les rangeait dans un classeur ?" }];
 const fetchOriginal = globalThis.fetch;
 afterEach(() => (globalThis.fetch = fetchOriginal));
 
@@ -97,4 +97,33 @@ test("moteur local : modèles d'abord, IA seulement si question pas reconnue", a
   assert.deepEqual([bot.source, bot.reponse, appels], ["modeles", "", 1]);
   const gratuit = await produireReponse({ ...config, moteur: "modeles" }, { messages }, undefined, deps);
   assert.deepEqual([gratuit.source, gratuit.reponse, appels], ["modeles", "", 1]);
+});
+
+test("mode Auto : rien ne part seul quand l'humain doit voir, sauf la promesse de photos", async () => {
+  const { peutPartirSeule } = await import("../src/moteur.js");
+  const { repondreAvecModeles } = await import("../src/modeles.js");
+  const modele = (texte) => ({ ...repondreAvecModeles({ messages: [{ de: "acheteur", texte }] }, config), source: "modeles" });
+  assert.equal(peutPartirSeule(modele("c'est toujours dispo ?")), true);
+  assert.equal(peutPartirSeule(modele("tu peux m'envoyer d'autres photos ?")), true);
+  assert.equal(peutPartirSeule(modele("ces cartes sont fausses")), false);
+  assert.equal(peutPartirSeule(modele("t'es un bot ?")), false);
+  assert.equal(peutPartirSeule(modele("je veux être remboursé")), false);
+  const ia = { reponse: "je sais pas", besoin_humain: true, raison: "pas sûre", problemes: [], source: "ia-locale" };
+  assert.equal(peutPartirSeule(ia), false);
+  // IA locale : brouillon par défaut, même en mode Auto
+  assert.equal(peutPartirSeule({ ...ia, besoin_humain: false }), false);
+  const envoiAuto = { local: { envoiAuto: true } };
+  assert.equal(peutPartirSeule({ ...ia, besoin_humain: false }, envoiAuto), true);
+  assert.equal(peutPartirSeule(ia, envoiAuto), false);
+  assert.equal(peutPartirSeule({ ...ia, besoin_humain: false, problemes: [{ regle: "x" }] }, envoiAuto), false);
+});
+
+test("rappels tu/vous et bonjour dans le prompt", async () => {
+  const { construireContenu } = await import("../src/prompt.js");
+  const vous = construireContenu({ annonce: "", messages: [{ de: "acheteur", texte: "Bonjour, vous en avez d'autres ?" }] });
+  assert.match(vous, /vouvoie-le/);
+  assert.match(vous, /première réponse/);
+  const tu = construireContenu({ annonce: "", messages: [{ de: "acheteur", texte: "salut" }, { de: "moi", texte: "salut" }, { de: "acheteur", texte: "tu fais des échanges ?" }] });
+  assert.match(tu, /tutoie-le/);
+  assert.match(tu, /pas de bonjour/);
 });

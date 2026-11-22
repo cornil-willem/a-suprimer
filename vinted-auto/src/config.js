@@ -14,10 +14,16 @@ export const CONFIG_PAR_DEFAUT = {
   moteur: "modeles",
   local: {
     url: "http://localhost:11434",
-    // Modèle Ollama. "mistral-nemo" (12B) écrit bien le français. Plus léger : "mistral".
-    modele: "mistral-nemo",
+    // Modèle Ollama. Llama 3.1 8B en q8 : ~9 Go (carte graphique 8 Go + ~3 Go de RAM),
+    // 10 à 30 s par réponse sur le PC de Willem. Le 70B (26 Go) prend trop de RAM.
+    modele: "llama3.1:8b-instruct-q8_0",
     // Au-delà, la réponse est abandonnée (notification). Gros modèle sur CPU : augmente.
-    delaiMaxSec: 300,
+    delaiMaxSec: 120,
+    // Bas = le modèle suit mieux les règles et invente moins.
+    temperature: 0.2,
+    // Mode Auto : les réponses de l'IA locale partent seules seulement si c'est coché.
+    // Par défaut elles restent en brouillon : un petit modèle peut inventer un détail.
+    envoiAuto: false,
   },
   modeles: {
     // Ex. "sous 2 jours". Vide : "j'envoie dès que je peux".

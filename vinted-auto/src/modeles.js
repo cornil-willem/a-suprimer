@@ -8,7 +8,7 @@ const REGLES_HUMAIN = [
   {
     id: "bot",
     raison: "l'acheteur demande si c'est un bot",
-    motif: /\b(bot|robot|ia|intelligence artificielle|chat ?gpt|automatiques?|une machine)\b|vraie personne|personne reelle|\bune? humaine?\b|qui (m'?ecrit|repond)/,
+    motif: /\b(bot|robot|ia|intelligence artificielle|chat ?gpt|automatiques?|une machine|humaine?s?)\b|vraie personne|personne reelle|reponses? auto\b|qui (m'?)?(ecri|me repond|repond|parle)|(parle|ecris|ecrit) a qui\b/,
   },
   {
     id: "probleme",
@@ -49,6 +49,26 @@ const REGLES = [
       "pour moi oui, c'est mon grand frère qui les collectionnait donc j'imagine. après j'y connais rien, je les récupère juste chez lui",
       "pour moi oui, elles viennent de mon grand frère qui collectionnait avant. après je m'y connais pas du tout",
     ],
+  },
+  {
+    // État, holo, édition, année, valeur : elle n'y connaît rien, rien n'est inventé.
+    id: "details",
+    exclusPar: "photos",
+    motif: /\b(annee|date de quand|de quelle epoque|editions?|1ere ed|premiere ed|holos?|holographiques?|reverse|rares?|rarete|etat|abimee?s?|(la|sa|leur|une) cote|valent|valeur|psa|gradee?s?|langue|en (francais|anglais|japonais)|japonaises?|serie|extension)\b/,
+    reponses: [
+      "aucune idée, j'y connais rien. regarde les photos de l'annonce",
+      "je sais pas trop, j'y connais rien. tout est sur les photos de l'annonce",
+    ],
+  },
+  {
+    id: "echange",
+    motif: /\bechang/,
+    reponses: ["non je fais pas d'échange", "non désolée, je fais pas d'échange"],
+  },
+  {
+    id: "autres",
+    motif: /(d'?autres (cartes|lots?|comme)|en (as|avez) d'autres|(t'|tu )en as (encore|plus)|vous en avez (encore|plus)|autre chose a vendre)/,
+    reponses: ["pour l'instant tout ce que j'ai est dans mon dressing", "tout ce que j'ai est dans mon dressing pour l'instant"],
   },
   {
     id: "photos",
@@ -116,6 +136,7 @@ const VOUVOIEMENT = [
   [/\bfais un lot\b/g, "faites un lot"],
   [/\bajoute-les\b/g, "ajoutez-les"],
   [/\btu peux\b/g, "vous pouvez"],
+  [/\bregarde les\b/g, "regardez les"],
   [/\bce qui t'intéresse\b/g, "ce qui vous intéresse"],
 ];
 
@@ -124,8 +145,15 @@ export function vouvoyer(texte) {
 }
 
 function acheteurVouvoie(messages) {
+  return formeAcheteur(messages) === "vous";
+}
+
+// "tu", "vous" ou null (on ne sait pas). Le tutoiement l'emporte si l'acheteur mélange.
+export function formeAcheteur(messages) {
   const texte = sansAccents(messages.filter((m) => m.de === "acheteur").map((m) => m.texte).join(" "));
-  return /\b(vous|votre|vos)\b/.test(texte) && !/\b(tu|ton|ta|tes|toi)\b|\bt'/.test(texte);
+  if (/\b(tu|ton|ta|tes|toi)\b|\bt'/.test(texte)) return "tu";
+  if (/\b(vous|votre|vos)\b/.test(texte)) return "vous";
+  return null;
 }
 
 function salutation(question, vous) {
@@ -172,7 +200,8 @@ export function repondreAvecModeles(conv, config = {}) {
     });
   }
 
-  const trouvees = REGLES.filter((r) => r.motif.test(q)).slice(0, 2);
+  const toutes = REGLES.filter((r) => r.motif.test(q));
+  const trouvees = toutes.filter((r) => !toutes.some((a) => a.id === r.exclusPar)).slice(0, 2);
   if (!trouvees.length) {
     if (RIEN.test(q)) return fin({ reponse: "", besoin_humain: false, rien: true, raison: "pas besoin de répondre", regles: [] });
     return fin({ reponse: "", besoin_humain: true, inconnue: true, raison: "question pas reconnue, à toi de répondre", regles: [] });

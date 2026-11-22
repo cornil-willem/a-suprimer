@@ -3,7 +3,7 @@ import { CONFIG_PAR_DEFAUT, fusionnerConfig } from "./config.js";
 import { Vinted, normaliserConversation, decrireArticle } from "./vinted.js";
 import { genererReponse, expliquerErreurClaude } from "./claude.js";
 import { genererReponseLocale } from "./local.js";
-import { produireReponse } from "./moteur.js";
+import { produireReponse, peutPartirSeule } from "./moteur.js";
 import { deciderOffre, prixOffreLike } from "./negociation.js";
 
 // ---------- Stockage ----------
@@ -201,7 +201,7 @@ async function traiterMessage(v, config, conv) {
     await journal(`${conv.acheteur} : "${question}" (pas besoin de répondre)`);
     return;
   }
-  const envoyerAuto = config.mode === "auto" && r.reponse && r.problemes.length === 0;
+  const envoyerAuto = config.mode === "auto" && peutPartirSeule(r, config);
 
   if (envoyerAuto) {
     await v.envoyerMessage(conv.id, r.reponse);

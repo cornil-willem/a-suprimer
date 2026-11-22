@@ -68,3 +68,30 @@ test("longueur, listes et emojis", () => {
   assert.ok(regles("😊 ok").includes("emoji en début de message"));
   assert.equal(verifierTexte("ok ça marche 👍").ok, true);
 });
+
+test("règles du compte : pas de coordonnées, pas de garantie", () => {
+  assert.ok(regles("écris-moi au 06 12 34 56 78").includes("coordonnées hors Vinted"));
+  assert.ok(regles("mon mail c'est acheteur@exemple.fr").includes("coordonnées hors Vinted"));
+  assert.ok(regles("regarde sur https://exemple.fr").includes("coordonnées hors Vinted"));
+  assert.ok(regles("elles sont garanties").includes("garantie d'authenticité"));
+  assert.ok(regles("oui elles sont vraies").includes("authenticité affirmée sans réserve"));
+  assert.ok(regles("oui ce sont des cartes officielles").includes("authenticité affirmée sans réserve"));
+  for (const t of [
+    "je sais pas si c'est des vraies",
+    "pour moi oui c'est des vraies, après j'y connais rien",
+    "je peux pas te garantir que c'est des originales",
+    "c'est vendu sans garantie",
+    "il y a 5 cartes dans le lot",
+  ]) {
+    assert.equal(verifierTexte(t).ok, true, `${t} -> ${JSON.stringify(verifierTexte(t).problemes)}`);
+  }
+});
+
+test("tu ou vous comme l'acheteur", () => {
+  assert.ok(regles2("oui je t'envoie ça demain", "vous").includes("tutoie un acheteur qui vouvoie"));
+  assert.ok(regles2("vous pouvez faire une offre", "tu").includes("vouvoie un acheteur qui tutoie"));
+  assert.equal(verifierTexte("oui je vous envoie ça demain", { forme: "vous" }).ok, true);
+  assert.equal(verifierTexte("oui je t'envoie ça demain", { forme: "tu" }).ok, true);
+  assert.equal(verifierTexte("oui toujours dispo", { forme: "vous" }).ok, true);
+});
+const regles2 = (t, forme) => verifierTexte(t, { forme }).problemes.map((p) => p.regle);

@@ -1,6 +1,7 @@
 // Moteur gratuit "IA locale" : un modèle open source qui tourne sur ton PC avec Ollama (ollama.com).
 // Aucun compte, aucune clé, rien ne sort de ton PC.
 import { construireSysteme, construireContenu, avecFiltreAntiIA } from "./prompt.js";
+import { formeAcheteur } from "./modeles.js";
 
 // Format JSON imposé au modèle (Ollama "structured outputs").
 const SCHEMA = {
@@ -39,7 +40,7 @@ async function appeler(config, systeme, contenu) {
         stream: false,
         format: SCHEMA,
         keep_alive: "30m",
-        options: { temperature: 0.6 },
+        options: { temperature: config.local.temperature ?? 0.2 },
         messages: [
           { role: "system", content: systeme },
           { role: "user", content: contenu },
@@ -84,5 +85,5 @@ async function appeler(config, systeme, contenu) {
 export async function genererReponseLocale(config, { annonce, messages, fiche }) {
   const systeme = construireSysteme(config.personnalite);
   const base = construireContenu({ annonce, messages, fiche });
-  return avecFiltreAntiIA((contenu) => appeler(config, systeme, contenu), base);
+  return avecFiltreAntiIA((contenu) => appeler(config, systeme, contenu), base, { forme: formeAcheteur(messages) });
 }

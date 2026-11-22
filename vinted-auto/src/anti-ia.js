@@ -106,7 +106,15 @@ const REGLES = [
   // Mise en forme
   R("liste à puces", String.raw`(^|\n)\s*([-•*]|\d+[.)])\s`),
   R("crochets à remplir", String.raw`\[[^\]]*\]`),
+
+  // Règles du compte : tout passe par Vinted, jamais de garantie d'authenticité.
+  R("coordonnées hors Vinted", String.raw`(https?://|www\.|[a-z0-9._-]+@[a-z0-9-]+\.[a-z]{2,}|(\+33|\b0)\s?[1-9]([ .-]?\d{2}){4}\b)`),
+  R("garantie d'authenticité", String.raw`(?<!sans |pas de |aucune )\bgaranti(e|es|s)?\b|\bcertifiee?s?\b|\bauthentifiee?s?\b`),
 ];
+
+// "c'est des vraies ?" : jamais "oui" sans dire qu'elle n'y connaît rien.
+const PARLE_AUTHENTICITE = /\b(vraies?|vrais|authentiques?|originale?s?|originaux|officielles?)\b/;
+const AVEC_RESERVE = /(pour moi|j'?imagine|je pense|je crois|a priori|connais (rien|pas)|y connais|aucune idee|sais pas|peux pas (te |vous )?(le |la |les )?garantir)/;
 
 const EMOJI = /\p{Extended_Pictographic}/gu;
 
@@ -122,7 +130,7 @@ export function sansAccents(texte) {
  * Contrôle une réponse. Renvoie le texte nettoyé et la liste des problèmes.
  * @returns {{texte: string, ok: boolean, problemes: {regle: string, extrait: string}[]}}
  */
-export function verifierTexte(brut, { longueurMax = 280, phrasesMax = 3 } = {}) {
+export function verifierTexte(brut, { longueurMax = 280, phrasesMax = 3, forme = null } = {}) {
   const texte = nettoyerTypo(brut);
   const plat = sansAccents(texte);
   const problemes = [];
@@ -130,6 +138,16 @@ export function verifierTexte(brut, { longueurMax = 280, phrasesMax = 3 } = {}) 
   for (const { nom, re } of REGLES) {
     const m = plat.match(re);
     if (m) problemes.push({ regle: nom, extrait: m[0].trim() });
+  }
+  // forme : "tu" ou "vous" selon l'acheteur (modeles.js formeAcheteur).
+  const tutoie = plat.match(/\b(tu|te|ton|ta|tes|toi)\b|\bt'/);
+  if (forme === "vous" && tutoie) problemes.push({ regle: "tutoie un acheteur qui vouvoie", extrait: tutoie[0] });
+  const vouvoie = plat.match(/\b(vous|votre|vos)\b/);
+  if (forme === "tu" && vouvoie) problemes.push({ regle: "vouvoie un acheteur qui tutoie", extrait: vouvoie[0] });
+
+  const authenticite = plat.match(PARLE_AUTHENTICITE);
+  if (authenticite && !AVEC_RESERVE.test(plat)) {
+    problemes.push({ regle: "authenticité affirmée sans réserve", extrait: authenticite[0] });
   }
 
   if (texte.length > longueurMax) {

@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { construireSysteme, construireContenu, avecFiltreAntiIA } from "./prompt.js";
+import { formeAcheteur } from "./modeles.js";
 
 const SchemaReponse = z.object({
   reponse: z
@@ -55,7 +56,7 @@ export async function genererReponse(config, { annonce, messages, fiche }) {
   const client = new Anthropic({ apiKey: config.apiKey, dangerouslyAllowBrowser: true });
   const systeme = construireSysteme(config.personnalite);
   const base = construireContenu({ annonce, messages, fiche });
-  return avecFiltreAntiIA((contenu) => appeler(client, config, systeme, contenu), base);
+  return avecFiltreAntiIA((contenu) => appeler(client, config, systeme, contenu), base, { forme: formeAcheteur(messages) });
 }
 
 // Message d'erreur lisible pour le journal.

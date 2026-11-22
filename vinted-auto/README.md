@@ -35,18 +35,21 @@ Elle ne marche que quand le PC est allumé (pas en veille) et que Chrome est ouv
 À faire une seule fois, sur le PC où tourne Chrome :
 
 1. Installe Ollama : [ollama.com/download](https://ollama.com/download).
-2. Ouvre PowerShell et télécharge le modèle (environ 7 Go) :
+2. Ouvre PowerShell et télécharge le modèle (environ 8,5 Go) :
    ```
-   ollama pull mistral-nemo
+   ollama pull llama3.1:8b-instruct-q8_0
    ```
-   PC moins puissant : `ollama pull mistral` (environ 4 Go), puis mets `mistral` dans Options > Modèle IA locale.
+   Choisi sur le PC de Willem (RTX 3070 8 Go, 32 Go de RAM) : 10 à 30 s par réponse, environ 3 Go de RAM. Le 70B (`llama3.3:70b-instruct-q2_K`, 26 Go) ne tient pas à côté du reste. Le `llama3.1:8b` standard (4,9 Go) est plus rapide mais accepte n'importe quel prix : à éviter.
+   Pour comparer des modèles : `npm run essai-ollama -- <modèle> [température]`.
 3. Autorise l'extension à parler à Ollama (sinon Ollama la refuse) :
    ```
    setx OLLAMA_ORIGINS "chrome-extension://*"
    ```
 4. Quitte Ollama (icône près de l'horloge > Quit) et relance-le.
 5. Dans Options, choisis le moteur **Réponses modèles + IA locale**, puis **Enregistrer**.
-6. Teste une question que les modèles ne connaissent pas (ex. « elle date de quelle année ? ») dans **Tester sans toucher à Vinted**.
+6. Teste une question que les modèles ne connaissent pas (ex. « ton frère les rangeait dans un classeur ? ») dans **Tester sans toucher à Vinted**.
+
+Un modèle 8B invente parfois un détail (« je les ai depuis quelques mois »). Ses réponses restent donc en brouillon, même en mode Auto, tant que la case « En mode Auto, envoyer seules les réponses de l'IA locale » n'est pas cochée. Les questions fréquentes (vraies ?, état, holo, édition, année, valeur, échanges, autres cartes...) ont une réponse modèle fixe : l'IA ne les voit pas.
 
 Ollama doit rester lancé. Il démarre tout seul avec Windows après l'installation.
 

@@ -22,3 +22,16 @@ export async function produireReponse(config, conv, fiche, deps) {
   }
   return { ...modele, source: "modeles" };
 }
+
+/**
+ * Mode Auto : une réponse part seule seulement si personne n'a besoin de la relire.
+ * Seule exception : la promesse de photos (réponse modèle), envoyée avec une notification
+ * pour que les photos partent vraiment. Bot, litige, carte signalée fausse : jamais seule.
+ * IA locale : seulement si l'option local.envoiAuto est cochée.
+ */
+export function peutPartirSeule(r, config = {}) {
+  if (!r?.reponse || r.problemes?.length) return false;
+  if (r.source === "ia-locale" && !config.local?.envoiAuto) return false;
+  if (!r.besoin_humain) return true;
+  return r.source === "modeles" && Boolean(r.regles?.includes("photos"));
+}

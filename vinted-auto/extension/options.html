@@ -32,7 +32,7 @@
     <div class="grille">
       <div>
         <label for="localModele">Modèle IA locale (Ollama)</label>
-        <input id="localModele" data-cle="local.modele" placeholder="mistral-nemo">
+        <input id="localModele" data-cle="local.modele" placeholder="llama3.1:8b-instruct-q8_0">
       </div>
       <div>
         <label for="localUrl">Adresse d'Ollama</label>
@@ -43,6 +43,8 @@
         <input id="localDelai" data-cle="local.delaiMaxSec" type="number" min="30" max="1800">
       </div>
     </div>
+    <label><input type="checkbox" data-cle="local.envoiAuto"> En mode Auto, envoyer seules les réponses de l'IA locale</label>
+    <p class="doux">Décoché (conseillé) : les réponses de l'IA locale restent en brouillon, même en mode Auto. Un petit modèle invente parfois un détail.</p>
   </div>
 
   <h2>Claude (seulement si moteur Claude)</h2>
