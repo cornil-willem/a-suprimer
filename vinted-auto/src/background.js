@@ -2,6 +2,7 @@
 import { CONFIG_PAR_DEFAUT, fusionnerConfig } from "./config.js";
 import { Vinted, normaliserConversation, decrireArticle } from "./vinted.js";
 import { genererReponse, expliquerErreurClaude } from "./claude.js";
+import { repondreAvecModeles } from "./modeles.js";
 import { deciderOffre, prixOffreLike } from "./negociation.js";
 
 // ---------- Stockage ----------
@@ -110,8 +111,8 @@ chrome.alarms.onAlarm.addListener(async (alarme) => {
 
 // ---------- Messages ----------
 async function passeMessages(config, { forcer = false } = {}) {
-  if (!config.apiKey) {
-    await journal("Pas de clé API Claude : renseigne-la dans Options", "erreur");
+  if (config.moteur === "claude" && !config.apiKey) {
+    await journal("Pas de clé API Claude : renseigne-la dans Options, ou choisis le moteur gratuit", "erreur");
     return { ok: false };
   }
   const v = await new Vinted(config).init();
@@ -165,14 +166,22 @@ async function passeMessages(config, { forcer = false } = {}) {
   return { ok: true, traitees };
 }
 
-async function traiterMessage(v, config, conv) {
+async function produireReponse(v, config, conv) {
+  if (config.moteur !== "claude") return repondreAvecModeles(conv, config);
   const article = await v.lireArticle(conv.article.id).catch(() => null);
   const annonce = article
     ? decrireArticle(article)
     : `Titre : ${conv.article.titre || "(inconnu)"}\n(description non disponible)`;
+  return genererReponse(config, { annonce, messages: conv.messages });
+}
 
-  const r = await genererReponse(config, { annonce, messages: conv.messages });
+async function traiterMessage(v, config, conv) {
+  const r = await produireReponse(v, config, conv);
   const question = conv.dernier.texte;
+  if (r.rien) {
+    await journal(`${conv.acheteur} : "${question}" (pas besoin de répondre)`);
+    return;
+  }
   const envoyerAuto = config.mode === "auto" && r.reponse && r.problemes.length === 0;
 
   if (envoyerAuto) {
@@ -407,13 +416,12 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
         return diagnostic(config);
       case "tester":
         try {
-          return await genererReponse(config, {
-            annonce: msg.annonce,
-            messages: msg.historique.map((texte, i) => ({
-              de: i % 2 === 0 ? "acheteur" : "moi",
-              texte,
-            })),
-          });
+          const messages = msg.historique.map((texte, i) => ({
+            de: i % 2 === 0 ? "acheteur" : "moi",
+            texte,
+          }));
+          if (config.moteur !== "claude") return repondreAvecModeles({ messages }, config);
+          return await genererReponse(config, { annonce: msg.annonce, messages });
         } catch (e) {
           return { erreur: expliquerErreurClaude(e) };
         }

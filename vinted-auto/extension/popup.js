@@ -91,7 +91,7 @@ async function rafraichir() {
   $("actif").checked = Boolean(config.actif);
   $("mode").value = config.mode || "brouillon";
   const avert = [];
-  if (!config.apiKey) avert.push("Pas de clé API Claude : ouvre les Options.");
+  if (config.moteur === "claude" && !config.apiKey) avert.push("Pas de clé API Claude : ouvre les Options.");
   if (config.mode === "auto") avert.push("Mode auto : les réponses partent sans ta validation.");
   $("avertissement").style.display = avert.length ? "block" : "none";
   $("avertissement").textContent = avert.join(" ");

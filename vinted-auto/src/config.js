@@ -8,7 +8,16 @@ export const CONFIG_PAR_DEFAUT = {
   // "auto" : la réponse part toute seule.
   mode: "brouillon",
 
-  // Clé API Claude (console.anthropic.com). Stockée uniquement dans ton Chrome.
+  // "modeles" : réponses toutes faites par mots-clés. Gratuit, sans clé.
+  // "claude" : réponses écrites par Claude. Payant (clé API).
+  moteur: "modeles",
+  modeles: {
+    // Ex. "sous 2 jours". Vide : "j'envoie dès que je peux".
+    delaiEnvoi: "",
+  },
+
+  // Clé API Claude (console.anthropic.com), seulement pour le moteur "claude".
+  // Stockée uniquement dans ton Chrome.
   apiKey: "",
   modele: "claude-opus-5-5",
   effort: "low",

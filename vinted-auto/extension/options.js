@@ -66,8 +66,9 @@ $("tester").onclick = async () => {
   const lignes = [
     `Réponse : ${r.reponse || "(aucune, tu réponds toi-même)"}`,
     `Besoin de toi : ${r.besoin_humain ? "oui" : "non"}${r.raison ? ` (${r.raison})` : ""}`,
-    `Essais : ${r.essais}`,
+    r.regles ? `Règles reconnues : ${r.regles.join(", ") || "aucune"}` : `Essais : ${r.essais}`,
   ];
+  if (r.rien) lignes[0] = "Réponse : (aucune, pas besoin de répondre)";
   if (r.problemes?.length) {
     lignes.push(`Filtre anti-IA : ${r.problemes.map((p) => `${p.regle} "${p.extrait}"`).join(" ; ")}`);
   }

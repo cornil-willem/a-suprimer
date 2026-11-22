@@ -17,7 +17,19 @@
   <h1>Vinted Auto · Options</h1>
   <p class="doux">Tout reste dans ton Chrome. La clé API n'est envoyée qu'à Anthropic.</p>
 
-  <h2>Claude</h2>
+  <h2>Qui écrit les réponses</h2>
+  <div class="carte">
+    <label for="moteur">Moteur</label>
+    <select id="moteur" data-cle="moteur">
+      <option value="modeles">Réponses modèles par mots-clés (gratuit)</option>
+      <option value="claude">Claude (payant, clé API nécessaire)</option>
+    </select>
+    <p class="doux">Gratuit : phrases toutes faites selon la question (vraies ?, prix, photos, réservation, dispo...). Question pas reconnue : rien n'est envoyé, tu reçois une notification.</p>
+    <label for="delaiEnvoi">Délai d'envoi (réponses modèles)</label>
+    <input id="delaiEnvoi" data-cle="modeles.delaiEnvoi" placeholder="ex. sous 2 jours (vide : « j'envoie dès que je peux »)">
+  </div>
+
+  <h2>Claude (seulement si moteur Claude)</h2>
   <div class="carte">
     <label for="apiKey">Clé API Claude</label>
     <input id="apiKey" data-cle="apiKey" type="password" autocomplete="off" placeholder="sk-ant-...">
@@ -42,9 +54,9 @@
     </div>
   </div>
 
-  <h2>Personnalité</h2>
+  <h2>Personnalité (seulement si moteur Claude)</h2>
   <div class="carte">
-    <p class="doux">Comment "toi" tu réponds. Les règles anti-IA sont ajoutées automatiquement après ce texte.</p>
+    <p class="doux">Comment Claude répond. Les règles anti-IA sont ajoutées automatiquement après ce texte. Le mode gratuit utilise ses propres phrases, tirées de cette personnalité.</p>
     <textarea id="personnalite" data-cle="personnalite" rows="22"></textarea>
     <div class="ligne" style="margin-top: 6px;">
       <button id="resetPerso">Remettre la personnalité par défaut</button>
@@ -54,15 +66,13 @@
   <h2>Tester sans toucher à Vinted</h2>
   <div class="carte">
     <label for="testAnnonce">Annonce</label>
-    <textarea id="testAnnonce" rows="3">Titre : Appareil photo argentique Minolta
-Prix : 35 €
-État : Bon état
-Description : Trouvé dans un grenier, je ne sais pas s'il fonctionne.</textarea>
+    <textarea id="testAnnonce" rows="3">Titre : Lot de 5 cartes Pokémon
+Prix : 5 €</textarea>
     <label for="testMessage">Message de l'acheteur (une ligne par message, en alternant acheteur / toi)</label>
-    <textarea id="testMessage" rows="3">Bonjour, est-ce que l'objectif est d'origine et est-ce que la cellule marche ?</textarea>
+    <textarea id="testMessage" rows="3">c'est des vraies ?</textarea>
     <div class="ligne" style="margin-top: 6px;">
       <button id="tester" class="principal">Générer une réponse</button>
-      <span class="doux">Utilise ta clé API (coûte une réponse).</span>
+      <span class="doux">Gratuit en mode modèles. Avec Claude, coûte une réponse.</span>
     </div>
     <pre id="resultatTest" class="carte" style="display: none; margin-top: 8px;"></pre>
   </div>
