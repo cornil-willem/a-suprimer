@@ -14,12 +14,14 @@ test("messages humains acceptés", () => {
     "fais-moi une offre, je regarde",
     "je passe que par Vinted",
     // Exemples de la personnalité : ils ne doivent pas déclencher le filtre.
-    "bah je m'y connais pas trop, je les récupère chez mon frère donc pour moi c'est pas un problème",
-    "honnêtement je sais pas ce que ça vaut, pour moi c'est les cartes qu'on avait petits, genre 1€ la carte",
-    "je m'y connais pas et j'ai besoin d'un peu d'argent pour mes études du coup je les mets pas cher",
-    "bah je suis étudiante, j'ai un appart à payer",
-    "bah pour moi oui, c'est mon grand frère qui les collectionnait donc j'imagine que oui. après moi j'y connais rien, je les récupère juste chez lui",
-    "ah bah je m'y connais pas donc je peux pas te garantir",
+    "je m'y connais pas trop et je les récupère chez mon frère, donc ça me dérange pas de les mettre pas cher",
+    "honnêtement je sais pas ce que ça vaut, pour moi c'est les cartes qu'on avait petits",
+    "j'ai besoin d'un peu d'argent pour mes études, du coup je les mets pas cher",
+    "je suis étudiante, j'ai un appart à payer",
+    "pour moi oui, c'est mon grand frère qui les collectionnait donc j'imagine. après j'y connais rien, je les récupère juste chez lui",
+    "je m'y connais pas vraiment donc je peux pas te garantir",
+    "Désolée j'ai tellement de demandes que je peux rien promettre",
+    "bah oui elle est dispo",
     "oui je t'envoie ça dans la journée ou demain",
     "je peux pas réserver, c'est le premier qui achète",
   ]) {
@@ -50,6 +52,13 @@ test("typographie IA corrigée sans réécriture", () => {
   assert.equal(nettoyerTypo("c’est dispo — je l’envoie demain…"), "c'est dispo, je l'envoie demain...");
   assert.equal(nettoyerTypo("**oui** «ok»"), 'oui "ok"');
   assert.equal(verifierTexte("oui — dispo").ok, true);
+});
+
+test("pas plus d'un mot d'oral par message", () => {
+  assert.ok(regles("ah bah je sais pas").includes("trop de mots d'oral"));
+  assert.ok(regles("bah oui, genre 5 cartes").includes("trop de mots d'oral"));
+  assert.equal(verifierTexte("ben oui").ok, true);
+  assert.equal(verifierTexte("un abonnement").ok, true); // "ben" dans un mot ne compte pas
 });
 
 test("longueur, listes et emojis", () => {

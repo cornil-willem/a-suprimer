@@ -41,6 +41,7 @@ Ponctuation et mise en forme, jamais :
 tiret long (—) ou moyen (–), guillemets « » ou “ ”, apostrophe courbe (’), points de suspension en un seul caractère (…),
 gras, titres, listes à puces ou numérotées, plusieurs paragraphes, crochets à remplir, signature à la fin.
 Pas plus d'un point d'exclamation. Pas plus d'un emoji, et jamais en début de message.
+Pas plus d'un mot d'oral par message ("bah", "ben", "ah", "genre", "enfin", "du coup"), et le plus souvent aucun.
 
 À la place : des phrases courtes et simples, des verbes simples ("c'est", "il y a", "j'ai", "je sais pas"),
 le ton d'un message tapé vite sur un téléphone.`;
@@ -143,6 +144,10 @@ export function verifierTexte(brut, { longueurMax = 280, phrasesMax = 3 } = {}) 
   }
   if ((texte.match(/!/g) || []).length > 1) {
     problemes.push({ regle: "trop de points d'exclamation", extrait: "!" });
+  }
+  const tics = plat.match(/(^|[^a-z])(bah|ben|ah|genre|enfin|du coup)(?![a-z])/g) || [];
+  if (tics.length > 1) {
+    problemes.push({ regle: "trop de mots d'oral", extrait: tics.map((t) => t.trim()).join(", ") });
   }
   const emojis = texte.match(EMOJI) || [];
   if (emojis.length > 1) {
