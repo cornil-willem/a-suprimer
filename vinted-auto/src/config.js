@@ -11,12 +11,14 @@ export const CONFIG_PAR_DEFAUT = {
   // "modeles" : réponses toutes faites par mots-clés. Gratuit, sans clé.
   // "local" : réponses toutes faites + IA locale (Ollama) pour le reste. Gratuit.
   // "claude" : réponses écrites par Claude. Payant (clé API).
-  moteur: "modeles",
+  // Par défaut "local" : Ollama et gemma3:12b sont installés sur le PC de Willem.
+  moteur: "local",
   local: {
     url: "http://localhost:11434",
-    // Modèle Ollama. Llama 3.1 8B en q8 : ~9 Go (carte graphique 8 Go + ~3 Go de RAM),
-    // 10 à 30 s par réponse sur le PC de Willem. Le 70B (26 Go) prend trop de RAM.
-    modele: "llama3.1:8b-instruct-q8_0",
+    // Modèle Ollama. Gemma 3 12B : ~10 Go (carte graphique 8 Go + ~4 Go de RAM), environ 10 s
+    // par réponse sur le PC de Willem, n'invente rien dans les essais. Llama 3.1 8B invente des détails,
+    // Llama 3.3 70B (26 Go) prend trop de RAM.
+    modele: "gemma3:12b",
     // Au-delà, la réponse est abandonnée (notification). Gros modèle sur CPU : augmente.
     delaiMaxSec: 120,
     // Bas = le modèle suit mieux les règles et invente moins.

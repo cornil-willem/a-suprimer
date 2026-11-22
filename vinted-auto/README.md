@@ -35,11 +35,11 @@ Elle ne marche que quand le PC est allumé (pas en veille) et que Chrome est ouv
 À faire une seule fois, sur le PC où tourne Chrome :
 
 1. Installe Ollama : [ollama.com/download](https://ollama.com/download).
-2. Ouvre PowerShell et télécharge le modèle (environ 8,5 Go) :
+2. Ouvre PowerShell et télécharge le modèle (environ 8 Go) :
    ```
-   ollama pull llama3.1:8b-instruct-q8_0
+   ollama pull gemma3:12b
    ```
-   Choisi sur le PC de Willem (RTX 3070 8 Go, 32 Go de RAM) : 10 à 30 s par réponse, environ 3 Go de RAM. Le 70B (`llama3.3:70b-instruct-q2_K`, 26 Go) ne tient pas à côté du reste. Le `llama3.1:8b` standard (4,9 Go) est plus rapide mais accepte n'importe quel prix : à éviter.
+   Choisi sur le PC de Willem (RTX 3070 8 Go, 32 Go de RAM) : environ 10 s par réponse, environ 4 Go de RAM. Dans les essais, il n'invente rien et refuse les prix ridicules. Écartés : `llama3.3:70b-instruct-q2_K` (26 Go, trop de RAM), `llama3.1:8b-instruct-q8_0` et `qwen3:8b` (inventent des détails), `llama3.1:8b` standard (accepte « 2 euros »).
    Pour comparer des modèles : `npm run essai-ollama -- <modèle> [température]`.
 3. Autorise l'extension à parler à Ollama (sinon Ollama la refuse) :
    ```

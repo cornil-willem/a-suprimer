@@ -140,7 +140,8 @@ async function passeMessages(config, { forcer = false } = {}) {
     const id = String(resume.id);
     const suivi = etat.conversations[id] || {};
     const majVinted = resume.updated_at || resume.updated_at_ts || "";
-    if (!forcer && suivi.vu === majVinted && !resume.is_unread) continue;
+    // Vérifié le 2026-11-22 : l'inbox renvoie "unread" (pas "is_unread").
+    if (!forcer && suivi.vu === majVinted && !(resume.unread ?? resume.is_unread)) continue;
 
     const conv = normaliserConversation(await v.lireConversation(id), v.userId);
     const dernier = conv.dernier;
@@ -406,6 +407,7 @@ async function diagnostic(config) {
         typesMessages: [...new Set((conv.messages || []).map((m) => m.entity_type))],
         clesMessage: cles(conv.messages?.[0]),
         clesEntite: cles(conv.messages?.[0]?.entity),
+        clesEntiteTexte: cles((conv.messages || []).find((m) => m.entity_type === "message")?.entity),
         clesTransaction: cles(conv.transaction),
       });
     }
@@ -414,8 +416,7 @@ async function diagnostic(config) {
   const a0 = dressing?.items?.[0];
   if (a0) {
     noter("dressing.items[0]", { cles: cles(a0) });
-    await tester("article", `/api/v2/items/${a0.id}`);
-    await tester("article (édition)", `/api/v2/item_upload/items/${a0.id}`);
+    await tester("article (item_upload)", `/api/v2/item_upload/items/${a0.id}`);
   }
   const notifs = await tester("notifications", "/api/v2/notifications?page=1&per_page=5");
   if (notifs?.notifications?.[0]) noter("notifications[0]", { cles: cles(notifs.notifications[0]) });

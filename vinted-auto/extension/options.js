@@ -50,7 +50,7 @@ $("tester").onclick = async () => {
   await enregistrer();
   const sortie = $("resultatTest");
   sortie.style.display = "block";
-  sortie.textContent = "Claude écrit...";
+  sortie.textContent = "Réponse en cours (l'IA locale peut mettre jusqu'à une minute)...";
   $("tester").disabled = true;
   const historique = $("testMessage").value.split("\n").map((l) => l.trim()).filter(Boolean);
   const r = await chrome.runtime.sendMessage({

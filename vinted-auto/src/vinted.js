@@ -103,6 +103,12 @@ export class Vinted {
       this.userId = c?.value || null;
     }
     if (!this.userId) {
+      // Vérifié le 2026-11-22 : /api/v2/users/current renvoie { user: { id, login, ... } }.
+      const r = await this.get("/api/v2/users/current").catch(() => null);
+      const id = r?.ok ? r.json?.user?.id : null;
+      this.userId = id ? String(id) : null;
+    }
+    if (!this.userId) {
       throw new Error(
         "ID Vinted introuvable : connecte-toi sur Vinted, ou remplis l'ID dans les Options",
       );
@@ -164,10 +170,11 @@ export class Vinted {
     return r.json?.items || [];
   }
 
-  // Annonce complète pour donner le contexte à Claude. null si illisible.
+  // Annonce complète pour donner le contexte à l'IA. null si illisible.
+  // Vérifié le 2026-11-22 : /api/v2/items/{id} renvoie 404, item_upload répond 200 pour ses propres annonces.
   async lireArticle(itemId) {
     if (!itemId) return null;
-    for (const path of [`/api/v2/items/${itemId}`, `/api/v2/item_upload/items/${itemId}`]) {
+    for (const path of [`/api/v2/item_upload/items/${itemId}`, `/api/v2/items/${itemId}`]) {
       const r = await this.get(path);
       if (r.ok && r.json?.item) return r.json.item;
     }
@@ -274,14 +281,18 @@ export class Vinted {
 }
 
 // ---------- Normalisation ----------
-// Transforme une conversation Vinted brute en format simple pour Claude et pour la logique.
+// Transforme une conversation Vinted brute en format simple pour l'IA et pour la logique.
+// Vérifié le 2026-11-22 sur un vrai compte : messages[] = { entity_type, entity, created_at_ts, ... }.
+//   "message"                          : entity = { id, body, user_id, photos, ... }
+//   "status_message", "action_message" : entity = { title, template, ... }, sans id ni user_id.
+// transaction = { id, item_id, item_title, status, offer_price, ... } (pas de item_price).
 export function normaliserConversation(conv, monId) {
   const messages = (conv.messages || [])
     .map((m) => {
       const e = m.entity || {};
       const auteur = String(e.user_id ?? m.user_id ?? "");
       const base = {
-        id: String(m.id ?? e.id ?? ""),
+        id: String(m.id ?? e.id ?? `${m.entity_type || "msg"}-${m.created_at_ts ?? ""}`),
         type: m.entity_type || "inconnu",
         de: auteur && auteur === String(monId) ? "moi" : auteur ? "acheteur" : "vinted",
         date: m.created_at_ts || e.created_at_ts || m.created_at || null,
@@ -323,7 +334,9 @@ export function decrireArticle(item) {
   const lignes = [
     `Titre : ${item.title ?? ""}`,
     `Prix : ${item.price?.amount ?? item.price ?? "?"} ${item.currency ?? "€"}`,
-    item.brand_title || item.brand ? `Marque : ${item.brand_title || item.brand}` : null,
+    item.brand_title || item.brand_dto?.title || typeof item.brand === "string"
+      ? `Marque : ${item.brand_title || item.brand_dto?.title || item.brand}`
+      : null,
     item.size_title ? `Taille : ${item.size_title}` : null,
     item.status ? `État : ${item.status}` : null,
     `Description : ${item.description ?? "(vide)"}`,
