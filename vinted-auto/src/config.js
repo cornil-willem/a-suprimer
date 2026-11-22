@@ -15,7 +15,7 @@ export const CONFIG_PAR_DEFAUT = {
 
   // Compte Vinted
   domaine: "www.vinted.fr",
-  pseudo: "themasterteam",
+  pseudo: "",
   // Laisse vide : l'extension lit ton ID dans le cookie v_uid.
   // Sinon, c'est le nombre dans l'URL de ton profil : vinted.fr/member/12345678-pseudo
   userId: "",
