@@ -39,3 +39,20 @@ test("annonce lue par item_upload", () => {
   assert.match(texte, /Prix : 5\.0 EUR/);
   assert.match(texte, /Marque : Pokémon/);
 });
+
+test("article vendu à un autre ou supprimé : indisponible", () => {
+  assert.equal(normaliserConversation(conversation, MOI).article.indisponible, false);
+  // Forme relevée le 2026-11-22 : item_is_closed sans achat, et message Vinted « plus disponible ».
+  const fermee = {
+    ...conversation,
+    transaction: { ...conversation.transaction, item_is_closed: true, purchase_id: null },
+    messages: [
+      conversation.messages[1],
+      { entity_type: "action_message", entity: { template: "x", title: "Cet article n'est plus disponible", subtitle: "Cet article a été vendu ou supprimé" } },
+      { entity_type: "message", entity: { id: 9, body: "Je vous paye 7€", user_id: 222, photos: [] } },
+    ],
+  };
+  assert.equal(normaliserConversation(fermee, MOI).article.indisponible, true);
+  const seulMessage = { ...fermee, transaction: conversation.transaction };
+  assert.equal(normaliserConversation(seulMessage, MOI).article.indisponible, true);
+});

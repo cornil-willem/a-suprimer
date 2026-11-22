@@ -122,3 +122,29 @@ test("détails, échanges, autres cartes : réponse modèle, rien d'inventé", (
   // "à côté" n'est pas une question de cote
   assert.deepEqual(repondre("on peut payer à côté par paypal ?").regles, ["contact"]);
 });
+
+test("plusieurs messages dont un pas reconnu : rien de partiel, l'IA voit tout", () => {
+  const r = repondreAvecModeles(
+    {
+      messages: [
+        { de: "acheteur", texte: "C'est possible d'avoir des meilleures photos svp" },
+        { de: "acheteur", texte: "Je vous paye 7€" },
+      ],
+    },
+    { modeles: { delaiEnvoi: "" } },
+  );
+  assert.equal(r.inconnue, true, r.reponse);
+  assert.equal(r.reponse, "");
+  // Un simple merci à côté d'une question reconnue ne gêne pas.
+  const ok = repondreAvecModeles(
+    { messages: [{ de: "acheteur", texte: "c'est toujours dispo ?" }, { de: "acheteur", texte: "merci" }] },
+    { modeles: { delaiEnvoi: "" } },
+  );
+  assert.ok(ok.regles.includes("dispo"), ok.regles);
+  // « Bonjour » envoyé seul avant la question non plus.
+  const salut = repondreAvecModeles(
+    { messages: [{ de: "acheteur", texte: "Bonjour !" }, { de: "acheteur", texte: "c'est des vraies ?" }] },
+    { modeles: { delaiEnvoi: "" } },
+  );
+  assert.ok(salut.regles.includes("vraies"), salut.regles);
+});

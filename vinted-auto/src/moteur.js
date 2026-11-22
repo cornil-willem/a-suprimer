@@ -11,6 +11,17 @@ import { repondreAvecModeles } from "./modeles.js";
  * @param {{lireAnnonce: () => Promise<string>, genererClaude: Function, genererLocal: Function}} deps
  */
 export async function produireReponse(config, conv, fiche, deps) {
+  // Article vendu à quelqu'un d'autre ou supprimé : rien d'automatique, Julie décide.
+  if (conv.article?.indisponible) {
+    return {
+      reponse: "",
+      besoin_humain: true,
+      raison: "article plus disponible (vendu ou supprimé)",
+      problemes: [],
+      regles: ["indisponible"],
+      source: "modeles",
+    };
+  }
   if (config.moteur === "claude") {
     const r = await deps.genererClaude(config, { annonce: await deps.lireAnnonce(), messages: conv.messages, fiche });
     return { ...r, source: "claude" };

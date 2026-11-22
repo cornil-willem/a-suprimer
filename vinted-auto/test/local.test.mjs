@@ -139,3 +139,16 @@ test("conversation à relire : réponse prévue jamais oubliée", async () => {
   assert.equal(aRelire(resume, { vu: "t1", planifie: { messageId: "9" } }), true, "réponse prévue");
   assert.equal(aRelire(resume, { vu: "t1", planifie: { messageId: "9" }, dernierTraite: "9" }), false, "déjà traitée");
 });
+
+test("article plus disponible : aucune réponse, notification, pas d'IA", async () => {
+  let appels = 0;
+  const deps = { lireAnnonce: async () => "", genererLocal: async () => (appels++, {}), genererClaude: async () => (appels++, {}) };
+  const conv = { article: { indisponible: true }, messages: [{ de: "acheteur", texte: "c'est toujours dispo ?" }] };
+  for (const moteur of ["local", "modeles", "claude"]) {
+    const r = await produireReponse({ moteur, modeles: { delaiEnvoi: "" } }, conv, undefined, deps);
+    assert.equal(r.reponse, "", moteur);
+    assert.equal(r.besoin_humain, true, moteur);
+    assert.match(r.raison, /plus disponible/);
+  }
+  assert.equal(appels, 0);
+});

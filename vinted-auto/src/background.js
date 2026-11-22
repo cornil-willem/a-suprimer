@@ -143,9 +143,17 @@ async function passeMessages(config, { forcer = false } = {}) {
     // Vérifié le 2026-11-22 : l'inbox renvoie "unread" (pas "is_unread").
     if (!forcer && !aRelire(resume, suivi)) continue;
 
-    const conv = normaliserConversation(await v.lireConversation(id), v.userId);
-    // Lectures espacées comme une personne qui parcourt sa messagerie (anti-bot de Vinted).
-    await pause(aleatoire(800, 2000));
+    let conv;
+    try {
+      conv = normaliserConversation(await v.lireConversation(id), v.userId);
+    } catch (e) {
+      // Une conversation illisible n'arrête pas les autres. Pas marquée vue : relue au prochain passage.
+      await journal(`Conversation ${id} : ${e.message}`, "erreur");
+      continue;
+    } finally {
+      // Lectures espacées comme une personne qui parcourt sa messagerie (anti-bot de Vinted).
+      await pause(aleatoire(800, 2000));
+    }
     const dernier = conv.dernier;
     suivi.vu = majVinted;
     etat.conversations[id] = suivi;

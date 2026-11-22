@@ -117,11 +117,21 @@ export class Vinted {
   }
 
   async requete(method, path, { body, form } = {}) {
-    const [{ result }] = await chrome.scripting.executeScript({
-      target: { tabId: this.tabId },
-      func: requetePage,
-      args: [{ method, path, body, form }],
-    });
+    const executer = async () =>
+      (
+        await chrome.scripting.executeScript({
+          target: { tabId: this.tabId },
+          func: requetePage,
+          args: [{ method, path, body, form }],
+        })
+      )[0]?.result;
+    let result = await executer();
+    // Pas de résultat : l'onglet a changé de page pendant la requête (quelqu'un navigue dedans).
+    // Une lecture se refait sans risque. Un envoi non : il est peut-être parti.
+    if (!result && method === "GET") {
+      await attendreChargement(this.tabId);
+      result = await executer();
+    }
     if (!result) throw new Error(`Pas de réponse pour ${method} ${path}`);
     if (result.status === 401) {
       throw new Error("Vinted : non connecté (401). Reconnecte-toi sur vinted.fr");
@@ -322,6 +332,11 @@ export function normaliserConversation(conv, monId) {
       titre: t.item_title || conv.subtitle || "",
       prix: Number(t.item_price?.amount ?? t.item_price ?? NaN),
       statutTransaction: t.status ?? null,
+      // Vérifié le 2026-11-22 : article vendu à quelqu'un d'autre ou supprimé = item_is_closed sans achat,
+      // plus un message Vinted « Cet article n'est plus disponible ».
+      indisponible:
+        Boolean(t.item_is_closed && !t.purchase_id) ||
+        messages.some((m) => m.de === "vinted" && /plus disponible/i.test(m.texte)),
     },
     messages,
     dernier: messages[messages.length - 1] || null,

@@ -127,6 +127,8 @@ const REGLES = [
 
 // Accusé de réception sans question : pas besoin de répondre.
 const RIEN = /^\s*(merci|ok|d'accord|dac|super|top|parfait|cool|ca marche|tres bien)\b[^?]{0,25}$/;
+// Message seul qui ne demande rien : salutation, emoji, ponctuation.
+const NEUTRE = /^\s*((bonjour|bonsoir|salut|coucou|hello|bjr|slt|re)\b[\s!.,]*(madame|mademoiselle)?[\s!.,]*|[^a-z0-9]*)$/;
 
 const VOUVOIEMENT = [
   [/\bje t'envoie\b/g, "je vous envoie"],
@@ -202,7 +204,12 @@ export function repondreAvecModeles(conv, config = {}) {
 
   const toutes = REGLES.filter((r) => r.motif.test(q));
   const trouvees = toutes.filter((r) => !toutes.some((a) => a.id === r.exclusPar)).slice(0, 2);
-  if (!trouvees.length) {
+  // Un des messages n'est pas compris : pas de réponse partielle, on traite comme une question inconnue.
+  const incompris = nouveaux.some((m) => {
+    const t = sansAccents(m.texte);
+    return !RIEN.test(t) && !NEUTRE.test(t) && !REGLES.some((r) => r.motif.test(t));
+  });
+  if (!trouvees.length || incompris) {
     if (RIEN.test(q)) return fin({ reponse: "", besoin_humain: false, rien: true, raison: "pas besoin de répondre", regles: [] });
     return fin({ reponse: "", besoin_humain: true, inconnue: true, raison: "question pas reconnue, à toi de répondre", regles: [] });
   }
