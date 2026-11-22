@@ -6,7 +6,8 @@
   "description": "Extension Chrome perso : réponses Vinted automatiques avec personnalité, republication, offres.",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "essai-ollama": "node scripts/essai-ollama.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",

@@ -8,7 +8,7 @@ const REGLES_HUMAIN = [
   {
     id: "bot",
     raison: "l'acheteur demande si c'est un bot",
-    motif: /\b(bot|robot|ia|intelligence artificielle|chat ?gpt|automatiques?|une machine)\b/,
+    motif: /\b(bot|robot|ia|intelligence artificielle|chat ?gpt|automatiques?|une machine)\b|vraie personne|personne reelle|\bune? humaine?\b|qui (m'?ecrit|repond)/,
   },
   {
     id: "probleme",

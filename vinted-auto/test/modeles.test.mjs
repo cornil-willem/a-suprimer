@@ -40,6 +40,9 @@ test("photos : réponse + notification", () => {
 test("bot, litige, fausses : la main à l'humain", () => {
   assert.deepEqual([repondre("t'es un bot ?").reponse, repondre("t'es un bot ?").besoin_humain], ["", true]);
   assert.equal(repondre("je veux être remboursé").reponse, "");
+  for (const q of ["t'es une vraie personne ?", "c'est un humain qui répond ?", "qui m'écrit là ?"]) {
+    assert.deepEqual(repondre(q).regles, ["bot"], q);
+  }
   const f = repondre("ces cartes sont fausses");
   assert.equal(f.besoin_humain, true);
   assert.match(f.reponse, /garantir/);

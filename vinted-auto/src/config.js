@@ -16,6 +16,8 @@ export const CONFIG_PAR_DEFAUT = {
     url: "http://localhost:11434",
     // Modèle Ollama. "mistral-nemo" (12B) écrit bien le français. Plus léger : "mistral".
     modele: "mistral-nemo",
+    // Au-delà, la réponse est abandonnée (notification). Gros modèle sur CPU : augmente.
+    delaiMaxSec: 300,
   },
   modeles: {
     // Ex. "sous 2 jours". Vide : "j'envoie dès que je peux".

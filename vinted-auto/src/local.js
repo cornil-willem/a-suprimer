@@ -18,15 +18,27 @@ export class ErreurLocale extends Error {}
 
 async function appeler(config, systeme, contenu) {
   const url = `${config.local.url.replace(/\/$/, "")}/api/chat`;
+  const delaiMaxSec = config.local.delaiMaxSec || 300;
+  const controle = new AbortController();
+  const minuteur = setTimeout(() => controle.abort(), delaiMaxSec * 1000);
+  // Un gros modèle peut mettre plusieurs minutes : on garde le service worker Chrome éveillé.
+  const battement =
+    typeof chrome !== "undefined" && chrome.runtime?.getPlatformInfo
+      ? setInterval(() => chrome.runtime.getPlatformInfo(), 20000)
+      : null;
+
   let res;
+  let data;
   try {
     res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controle.signal,
       body: JSON.stringify({
         model: config.local.modele,
         stream: false,
         format: SCHEMA,
+        keep_alive: "30m",
         options: { temperature: 0.6 },
         messages: [
           { role: "system", content: systeme },
@@ -34,8 +46,15 @@ async function appeler(config, systeme, contenu) {
         ],
       }),
     });
-  } catch {
+    if (res.ok) data = await res.json();
+  } catch (e) {
+    if (e?.name === "AbortError") {
+      throw new ErreurLocale(`IA locale trop lente (plus de ${delaiMaxSec} s) : prends un modèle plus petit`);
+    }
     throw new ErreurLocale("IA locale injoignable : Ollama n'est pas lancé sur ce PC");
+  } finally {
+    clearTimeout(minuteur);
+    if (battement) clearInterval(battement);
   }
   if (res.status === 403) {
     throw new ErreurLocale("Ollama refuse l'extension : règle OLLAMA_ORIGINS (voir README)");
@@ -45,7 +64,6 @@ async function appeler(config, systeme, contenu) {
   }
   if (!res.ok) throw new ErreurLocale(`IA locale : HTTP ${res.status}`);
 
-  const data = await res.json();
   let sortie;
   try {
     sortie = JSON.parse(data?.message?.content ?? "");

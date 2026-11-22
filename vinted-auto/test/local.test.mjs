@@ -64,6 +64,13 @@ test("erreurs Ollama lisibles", async () => {
   await assert.rejects(genererReponseLocale(config, { annonce: "", messages }), /OLLAMA_ORIGINS/);
 });
 
+test("modèle trop lent : abandon avec message clair", async () => {
+  globalThis.fetch = (_url, init) =>
+    new Promise((_ok, ko) => init.signal.addEventListener("abort", () => ko(new DOMException("stop", "AbortError"))));
+  const lent = { ...config, local: { ...config.local, delaiMaxSec: 0.05 } };
+  await assert.rejects(genererReponseLocale(lent, { annonce: "", messages }), /trop lente/);
+});
+
 test("JSON illisible : rien envoyé, notification", async () => {
   globalThis.fetch = async () => new Response(JSON.stringify({ message: { content: "pas du json" } }));
   const r = await genererReponseLocale(config, { annonce: "", messages });
