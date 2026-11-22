@@ -13,6 +13,15 @@ test("messages humains acceptés", () => {
     "je peux pas te le garantir, je l'ai eu d'occasion",
     "fais-moi une offre, je regarde",
     "je passe que par Vinted",
+    // Exemples de la personnalité : ils ne doivent pas déclencher le filtre.
+    "bah je m'y connais pas trop, je les récupère chez mon frère donc pour moi c'est pas un problème",
+    "honnêtement je sais pas ce que ça vaut, pour moi c'est les cartes qu'on avait petits, genre 1€ la carte",
+    "je m'y connais pas et j'ai besoin d'un peu d'argent pour mes études du coup je les mets pas cher",
+    "bah je suis étudiante, j'ai un appart à payer",
+    "bah pour moi oui, c'est mon grand frère qui les collectionnait donc j'imagine que oui. après moi j'y connais rien, je les récupère juste chez lui",
+    "ah bah je m'y connais pas donc je peux pas te garantir",
+    "oui je t'envoie ça dans la journée ou demain",
+    "je peux pas réserver, c'est le premier qui achète",
   ]) {
     const r = verifierTexte(t);
     assert.equal(r.ok, true, `${t} -> ${JSON.stringify(r.problemes)}`);
