@@ -75,3 +75,14 @@ Test en local : `python3 -m http.server 8000` dans ce dossier, puis http://local
 - Groupes de cartons (par joueur, par couleur).
 - Annonce vocale du numéro tapé.
 - Mode « je suis l'animateur » avec boulier virtuel.
+
+## APK Android (lanceur)
+
+`android/LotoCartons.apk` : une appli « Loto Cartons » qui ouvre la page claude.ai
+dans un onglet intégré du navigateur (connexion claude.ai réutilisée, lecture des photos
+gratuite, cartons et stats du compte). Installation : ouvrir le fichier sur le téléphone
+et autoriser l'installation depuis cette source.
+
+Refaire l'APK : `android/build.sh` (outils Android 34 requis, sans Gradle).
+La clé de signature reste hors du dépôt : un APK signé avec une autre clé demande de
+désinstaller l'ancien avant d'installer le nouveau (aucune donnée n'est perdue, elles sont sur claude.ai).
