@@ -187,3 +187,32 @@ test("article plus dispo : phrases qui passent le filtre", async () => {
     assert.equal(verifierTexte(r.reponse).ok, true, r.reponse);
   }
 });
+
+test("prix proposé par message : offre, et « d'autres personnes » seulement si c'est vrai", () => {
+  const avec = (n, ...lignes) => repondreAvecModeles({ ...conv(...lignes), article: { autresInteresses: n } }, {});
+  for (const q of ["Pour le tout 13€", "13€ ?", "13", "je te propose 10", "tu me le fais à 8€ ?", "possible à 12 ?", "10 euros ça vous va ?", "je prends les 3 pour 10€", "15€ pour le tout ?"]) {
+    const r = avec(0, q);
+    assert.deepEqual(r.regles, ["prixPropose"], q);
+    assert.equal(r.besoin_humain, false, q);
+    assert.match(r.reponse, /offre/, q);
+    assert.doesNotMatch(r.reponse, /autres personnes|herbe/, q);
+  }
+  const r = avec(2, "Pour le tout 13€");
+  assert.match(r.reponse, /autres personnes/);
+  assert.match(r.reponse, /couper l'herbe sous le pied/);
+  // Vouvoiement
+  assert.match(avec(1, "Bonjour, je vous propose 10€").reponse, /^Bonjour, .*(faites une offre si vous voulez|vous pouvez faire une offre)/);
+  // Pas un prix proposé
+  for (const q of ["les frais de port c'est 3€ ?", "c'est toujours dispo ?", "tu as 2 cartes en double ?"]) {
+    assert.ok(!avec(0, q).regles.includes("prixPropose"), q);
+  }
+  // Pas deux fois « fais une offre » quand négocier et prix proposé se recoupent
+  assert.deepEqual(avec(0, "dernier prix 10€ ?").regles, ["prixPropose"]);
+});
+
+test("carte dite fausse dans une autre langue : la main à l'humain", () => {
+  for (const q of ["salve posso avere altre foto senza flash fronte retro, perché sembrano false", "are they fake ?", "son falsas ?"]) {
+    const r = repondre(q);
+    assert.deepEqual([r.regles, r.besoin_humain], [["fausses"], true], q);
+  }
+});

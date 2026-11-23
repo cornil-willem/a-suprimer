@@ -408,6 +408,8 @@ export function normaliserConversation(conv, monId) {
     article: {
       id: t.item_id ?? conv.item_id ?? null,
       titre: t.item_title || conv.subtitle || "",
+      // Photo principale : l'inbox ne donne pas l'id de l'article, mais la même photo (même id, vérifié le 2026-11-23).
+      photoId: t.item_photo?.id ?? null,
       prix: Number(t.item_price?.amount ?? t.item_price ?? NaN),
       statutTransaction: t.status ?? null,
       // Vérifié le 2026-11-22 : article vendu à quelqu'un d'autre ou supprimé = item_is_closed sans achat,
@@ -429,6 +431,23 @@ export function normaliserConversation(conv, monId) {
     messages,
     dernier: messages[messages.length - 1] || null,
   };
+}
+
+// Nombre d'autres personnes qui ont écrit pour le même article ces derniers jours, d'après la liste
+// de l'inbox (item_photos[].id = photo de l'article). Sert à ne dire « d'autres personnes intéressées » que si c'est vrai.
+export function autresInteresses(resumes, { convId, acheteurId, photoId }, maintenant = Date.now(), jours = 7) {
+  if (!photoId) return 0;
+  const personnes = new Set();
+  for (const r of resumes || []) {
+    if (String(r.id) === String(convId)) continue;
+    const autre = r.opposite_user?.id;
+    if (autre != null && String(autre) === String(acheteurId)) continue;
+    if (!(r.item_photos || []).some((p) => String(p?.id) === String(photoId))) continue;
+    const quand = Date.parse(r.updated_at || "");
+    if (Number.isFinite(quand) && maintenant - quand > jours * 86400000) continue;
+    personnes.add(String(autre ?? r.id));
+  }
+  return personnes.size;
 }
 
 // Statut de la commande d'après les messages Vinted de la conversation, lus dans l'ordre.

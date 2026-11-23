@@ -264,3 +264,20 @@ test("401 : renouvellement refusé, une seule tentative puis erreur claire", asy
   assert.equal(appels.length, 2);
   delete globalThis.chrome;
 });
+test("autres personnes intéressées par le même article (inbox, 7 jours)", async () => {
+  const { autresInteresses, normaliserConversation } = await import("../src/vinted.js");
+  const maintenant = Date.parse("2026-11-23T15:00:00+01:00");
+  const resume = (id, userId, photo, quand) => ({ id, opposite_user: { id: userId }, item_photos: [{ id: photo }], updated_at: quand });
+  const resumes = [
+    resume(1, 10, 555, "2026-11-23T14:00:00+01:00"), // la conversation elle-même
+    resume(2, 20, 555, "2026-11-23T15:45:00+01:00"),
+    resume(3, 30, 555, "2026-11-22T09:00:00+01:00"),
+    resume(4, 40, 999, "2026-11-23T10:00:00+01:00"), // autre article
+    resume(5, 50, 555, "2026-11-01T10:00:00+01:00"), // trop vieux
+    resume(6, 10, 555, "2026-11-23T10:00:00+01:00"), // même acheteur, autre conversation
+  ];
+  assert.equal(autresInteresses(resumes, { convId: 1, acheteurId: 10, photoId: 555 }, maintenant), 2);
+  assert.equal(autresInteresses(resumes, { convId: 1, acheteurId: 10, photoId: null }, maintenant), 0);
+  const c = normaliserConversation({ id: 1, transaction: { item_photo: { id: 555 } }, messages: [] }, "1");
+  assert.equal(c.article.photoId, 555);
+});

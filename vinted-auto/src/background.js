@@ -1,6 +1,6 @@
 // Service worker de l'extension : planifie et exécute les tâches.
 import { CONFIG_PAR_DEFAUT, fusionnerConfig, appliquerReglagesPc } from "./config.js";
-import { Vinted, normaliserConversation, decrireArticle, hoteApi, likesDepuisNotifications } from "./vinted.js";
+import { Vinted, normaliserConversation, decrireArticle, hoteApi, likesDepuisNotifications, autresInteresses } from "./vinted.js";
 import { genererReponse, expliquerErreurClaude } from "./claude.js";
 import { genererReponseLocale } from "./local.js";
 import { messageLike } from "./modeles.js";
@@ -169,6 +169,11 @@ async function passeMessages(config, { forcer = false } = {}) {
     let conv;
     try {
       conv = normaliserConversation(await v.lireConversation(id), v.userId);
+      conv.article.autresInteresses = autresInteresses(conversations, {
+        convId: id,
+        acheteurId: conv.acheteurId,
+        photoId: conv.article.photoId,
+      });
     } catch (e) {
       // Une conversation illisible n'arrête pas les autres. Pas marquée vue : relue au prochain passage.
       await journal(`Conversation ${id} : ${e.message}`, "erreur");

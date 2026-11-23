@@ -18,7 +18,8 @@ const REGLES_HUMAIN = [
   {
     id: "fausses",
     raison: "carte signalée fausse",
-    motif: /(c'?est (des )?(faux|fausses?|fakes?)|sont (des )?fausses|contrefa|pas des vraies|pas authentique|\bdes fakes?\b)/,
+    // Aussi en italien, anglais, espagnol : « sembrano false » (vu le 2026-11-23), « fake », « falsas ».
+    motif: /(c'?est (des )?(faux|fausses?|fakes?)|sont (des )?fausses|contrefa|pas des vraies|pas authentique|\bfakes?\b|\bfals[eioa]s?\b)/,
     reponses: [
       "je m'y connais pas vraiment donc je peux pas te garantir",
       "honnêtement j'y connais rien donc je peux pas te garantir",
@@ -105,7 +106,23 @@ const REGLES = [
     reponses: ["je peux pas réserver, c'est le premier qui achète", "désolée je peux pas réserver, c'est le premier qui achète"],
   },
   {
+    // Prix proposé par message (« Pour le tout 13€ », « 10€ ? », « je te propose 8 »), pas les frais de port.
+    // « D'autres personnes intéressées » seulement si c'est vrai : d'autres acheteurs ont écrit
+    // pour cet article ces 7 derniers jours (compté dans background.js). Pas de fausse urgence.
+    id: "prixPropose",
+    motif:
+      /^(?![\s\S]*\b(port|livraison|frais|colis)\b)[\s\S]*(pour (le tout|l'?ensemble|tout|le lot|les (deux|trois|\d+))\s*(a\s*)?\d|je (te |vous )?(propose|offre|donne|fais) \d|\b(a|pour) \d+([.,]\d+)? ?((€|eur(os?)?|e)(?![a-z])|\s*\?)|^\s*\d+([.,]\d+)? ?(€|eur(os?)?|e)?\s*[?!.]*\s*$|\d+([.,]\d+)? ?(€|eur(os?)?)\s*(\?|pour |(ca|c'?est) (te |vous )?(va|ok|possible|bon)))/,
+    reponses: (config, conv) =>
+      conv?.article?.autresInteresses > 0
+        ? [
+            "il y a déjà d'autres personnes intéressées, je veux pas leur couper l'herbe sous le pied. fais une offre si tu veux, je regarde",
+            "j'ai déjà d'autres personnes dessus, je vais pas leur couper l'herbe sous le pied. tu peux faire une offre, je regarde",
+          ]
+        : ["fais une offre, je regarde", "tu peux faire une offre, je regarde"],
+  },
+  {
     id: "negocier",
+    exclusPar: "prixPropose",
     motif: /(dernier prix|baiss|reduc|negoci|moins cher|faire un prix|un geste|a combien)/,
     reponses: ["fais une offre, je regarde", "tu peux faire une offre, je regarde"],
   },
@@ -179,6 +196,7 @@ const VOUVOIEMENT = [
   [/\bfais un lot\b/g, "faites un lot"],
   [/\bajoute-les\b/g, "ajoutez-les"],
   [/\btu peux\b/g, "vous pouvez"],
+  [/\bsi tu veux\b/g, "si vous voulez"],
   [/\bregarde les\b/g, "regardez les"],
   [/\bce qui t'intéresse\b/g, "ce qui vous intéresse"],
   [/\bta commande\b/g, "votre commande"],
@@ -263,7 +281,7 @@ export function repondreAvecModeles(conv, config = {}) {
   }
 
   const morceaux = trouvees.map((r) => {
-    const variantes = typeof r.reponses === "function" ? r.reponses(config) : r.reponses;
+    const variantes = typeof r.reponses === "function" ? r.reponses(config, conv) : r.reponses;
     const texte = choisir(variantes, dejaEnvoye);
     return vous ? vouvoyer(texte) : texte;
   });
