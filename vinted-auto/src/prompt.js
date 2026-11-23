@@ -11,8 +11,11 @@ export const CONSIGNES_FORMAT = `FONCTIONNEMENT
   raison : courte explication pour la personne qui gère le compte si besoin_humain est true, sinon vide.
   memo : une info utile à retenir sur cet acheteur pour la suite (ex. "veut le lot avec Dracaufeu", "photos promises"), sinon vide.`;
 
-export function construireSysteme(personnalite) {
-  return `${personnalite.trim()}\n\n${REGLES_ANTI_IA}\n\n${CONSIGNES_FORMAT}`;
+// Le délai d'envoi réglé dans les Options (réponses modèles) remplit aussi la ligne vide de la personnalité.
+export function construireSysteme(personnalite, config = {}) {
+  const delai = config.modeles?.delaiEnvoi;
+  const texte = delai ? personnalite.replace(/(Délai d'envoi habituel :) \(à remplir\)/, `$1 ${delai}`) : personnalite;
+  return `${texte.trim()}\n\n${REGLES_ANTI_IA}\n\n${CONSIGNES_FORMAT}`;
 }
 
 // Conversation au format texte. "toi" = le compte (déjà envoyé), "acheteur" = l'autre.

@@ -158,3 +158,14 @@ test("article plus disponible : « plus dispo » une fois, puis plus rien, jamai
   assert.deepEqual([r.reponse, r.rien, r.besoin_humain], ["", true, false]);
   assert.equal(appels, 0);
 });
+
+test("le délai d'envoi des Options remplit la personnalité, l'emballage est autorisé", async () => {
+  const { construireSysteme } = await import("../src/prompt.js");
+  const avec = construireSysteme(PERSONNALITE_PAR_DEFAUT, { modeles: { delaiEnvoi: "sous 2 jours" } });
+  assert.match(avec, /Délai d'envoi habituel : sous 2 jours/);
+  assert.doesNotMatch(avec, /Délai d'envoi habituel : \(à remplir\)/);
+  const sans = construireSysteme(PERSONNALITE_PAR_DEFAUT, { modeles: { delaiEnvoi: "" } });
+  assert.match(sans, /Délai d'envoi habituel : \(à remplir\)/);
+  assert.match(avec, /Emballage : sleeves, toploaders, carton et papier bulle/);
+  assert.match(avec, /Après un achat .* besoin_humain = false/);
+});

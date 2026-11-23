@@ -83,7 +83,7 @@ async function appeler(config, systeme, contenu) {
  * Même contrat que genererReponse (claude.js), avec le modèle local.
  */
 export async function genererReponseLocale(config, { annonce, messages, fiche }) {
-  const systeme = construireSysteme(config.personnalite);
+  const systeme = construireSysteme(config.personnalite, config);
   const base = construireContenu({ annonce, messages, fiche });
   return avecFiltreAntiIA((contenu) => appeler(config, systeme, contenu), base, { forme: formeAcheteur(messages) });
 }

@@ -54,7 +54,7 @@ async function appeler(client, config, systeme, contenu) {
 export async function genererReponse(config, { annonce, messages, fiche }) {
   // Extension perso : la clé reste dans le stockage local de TON Chrome, jamais envoyée ailleurs qu'à Anthropic.
   const client = new Anthropic({ apiKey: config.apiKey, dangerouslyAllowBrowser: true });
-  const systeme = construireSysteme(config.personnalite);
+  const systeme = construireSysteme(config.personnalite, config);
   const base = construireContenu({ annonce, messages, fiche });
   return avecFiltreAntiIA((contenu) => appeler(client, config, systeme, contenu), base, { forme: formeAcheteur(messages) });
 }
