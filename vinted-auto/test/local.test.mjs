@@ -1,7 +1,7 @@
 import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { genererReponseLocale } from "../src/local.js";
-import { produireReponse } from "../src/moteur.js";
+import { produireReponse, peutPartirSeule } from "../src/moteur.js";
 import { PERSONNALITE_PAR_DEFAUT } from "../src/personnalite.js";
 
 const config = {
@@ -140,15 +140,21 @@ test("conversation à relire : réponse prévue jamais oubliée", async () => {
   assert.equal(aRelire(resume, { vu: "t1", planifie: { messageId: "9" }, dernierTraite: "9" }), false, "déjà traitée");
 });
 
-test("article plus disponible : aucune réponse, notification, pas d'IA", async () => {
+test("article plus disponible : « plus dispo » une fois, puis plus rien, jamais d'IA", async () => {
   let appels = 0;
   const deps = { lireAnnonce: async () => "", genererLocal: async () => (appels++, {}), genererClaude: async () => (appels++, {}) };
   const conv = { article: { indisponible: true }, messages: [{ de: "acheteur", texte: "c'est toujours dispo ?" }] };
   for (const moteur of ["local", "modeles", "claude"]) {
     const r = await produireReponse({ moteur, modeles: { delaiEnvoi: "" } }, conv, undefined, deps);
-    assert.equal(r.reponse, "", moteur);
-    assert.equal(r.besoin_humain, true, moteur);
-    assert.match(r.raison, /plus disponible/);
+    assert.match(r.reponse, /plus dispo/, moteur);
+    assert.equal(r.besoin_humain, false, moteur);
+    assert.equal(peutPartirSeule(r, {}), true, "part seule en mode Auto");
   }
+  const suite = {
+    article: { indisponible: true },
+    messages: [...conv.messages, { de: "moi", texte: "désolée, il est plus dispo" }, { de: "acheteur", texte: "tu en as d'autres ?" }],
+  };
+  const r = await produireReponse({ moteur: "local" }, suite, undefined, deps);
+  assert.deepEqual([r.reponse, r.rien, r.besoin_humain], ["", true, false]);
   assert.equal(appels, 0);
 });

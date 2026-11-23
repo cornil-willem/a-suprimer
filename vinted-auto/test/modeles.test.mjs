@@ -148,3 +148,42 @@ test("plusieurs messages dont un pas reconnu : rien de partiel, l'IA voit tout",
   );
   assert.ok(salut.regles.includes("vraies"), salut.regles);
 });
+
+test("acheteur de l'article : réponse sur l'envoi d'après le statut Vinted", async () => {
+  const { repondreAvecModeles } = await import("../src/modeles.js");
+  const acheteur = (envoi, texte) =>
+    repondreAvecModeles(
+      { article: { achete: true, envoi }, messages: [{ de: "moi", texte: "ok" }, { de: "acheteur", texte }] },
+      { modeles: { delaiEnvoi: "" } },
+    );
+  assert.match(acheteur("envoye", "c'est envoyé ?").reponse, /parti|envoyé/);
+  assert.match(acheteur(null, "tu l'as envoyé ?").reponse, /pas encore/);
+  assert.match(acheteur("livre", "le colis est parti ?").reponse, /livré/);
+  assert.match(acheteur(null, "vous l'avez envoyé ?").reponse, /pas encore/);
+  // Problème de colis : toujours pour l'humain
+  assert.equal(acheteur("envoye", "j'ai jamais reçu le colis").besoin_humain, true);
+  // Quelqu'un qui n'a pas acheté : pas de réponse sur « sa » commande
+  const autre = repondreAvecModeles({ article: {}, messages: [{ de: "acheteur", texte: "c'est envoyé ?" }] }, {});
+  assert.notDeepEqual(autre.regles, ["envoiAcheteur"]);
+});
+
+test("message aux personnes qui likent : naturel, sans fausse urgence", async () => {
+  const { messageLike } = await import("../src/modeles.js");
+  for (let i = 0; i < 30; i++) {
+    const normal = messageLike({ favoris: 1, seuilPopulaire: 5 });
+    assert.match(normal, /^Bonjour, /);
+    assert.doesNotMatch(normal, /pas mal/, "pas de « pas mal de likes » si ce n'est pas vrai");
+    assert.equal(verifierTexte(normal, { forme: "vous" }).ok, true, normal);
+    const populaire = messageLike({ favoris: 8, seuilPopulaire: 5 });
+    assert.match(populaire, /pas mal/);
+    assert.equal(verifierTexte(populaire, { forme: "vous" }).ok, true, populaire);
+  }
+});
+
+test("article plus dispo : phrases qui passent le filtre", async () => {
+  const { reponsePlusDispo } = await import("../src/modeles.js");
+  for (let i = 0; i < 10; i++) {
+    const r = reponsePlusDispo({ messages: [{ de: "acheteur", texte: "dispo ?" }] });
+    assert.equal(verifierTexte(r.reponse).ok, true, r.reponse);
+  }
+});

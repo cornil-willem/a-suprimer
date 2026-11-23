@@ -156,15 +156,23 @@ Prix : 5 €</textarea>
     <label for="prixMinPct">Accepter si l'offre atteint (% du prix affiché)</label>
     <input id="prixMinPct" data-cle="negociation.prixMinPct" type="number" min="30" max="100">
 
-    <label><input type="checkbox" data-cle="offresLikes.actif"> Envoyer une offre aux personnes qui likent</label>
+    <label><input type="checkbox" data-cle="offresLikes.actif"> Contacter les personnes qui likent une annonce</label>
+    <p class="doux">Une seule fois par personne et par annonce. Ex. : « Bonjour, j'ai vu que vous aviez liké mon annonce, elle est toujours dispo et prête à partir si ça vous intéresse ». « Il a pas mal de likes » est ajouté seulement si c'est vrai.</p>
+    <label><input type="checkbox" data-cle="offresLikes.message"> Envoyer un message</label>
+    <label><input type="checkbox" data-cle="offresLikes.offre"> Faire aussi une offre avec remise</label>
+    <label><input type="checkbox" data-cle="offresLikes.envoiAuto"> Envoyer sans validation (mode Auto), sinon brouillon</label>
     <div class="grille">
       <div>
         <label for="remise">Remise (%)</label>
         <input id="remise" data-cle="offresLikes.remisePct" type="number" min="5" max="50">
       </div>
       <div>
-        <label for="maxJour">Offres max par jour</label>
+        <label for="maxJour">Personnes contactées max par jour</label>
         <input id="maxJour" data-cle="offresLikes.maxParJour" type="number" min="1" max="100">
+      </div>
+      <div>
+        <label for="seuilPop">« Pas mal de likes » à partir de (favoris)</label>
+        <input id="seuilPop" data-cle="offresLikes.seuilPopulaire" type="number" min="0" max="100">
       </div>
     </div>
 

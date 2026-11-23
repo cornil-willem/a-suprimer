@@ -13,7 +13,7 @@ const REGLES_HUMAIN = [
   {
     id: "probleme",
     raison: "litige, retour, remboursement ou colis",
-    motif: /(rembours|litige|retour|colis|pas recu|perdu|arnaque|escro|plainte|signale)/,
+    motif: /(rembours|litige|retour|pas recu|jamais recu|perdu|abime|casse|arnaque|escro|plainte|signale|colis (est )?(bloque|vide|ouvert|endommage))/,
   },
   {
     id: "fausses",
@@ -125,6 +125,47 @@ const REGLES = [
   },
 ];
 
+// Questions de l'acheteur sur l'envoi de SA commande.
+const ENVOI_ACHETEUR = /(envoy|expedi|c'?est parti|t'?as poste|avez poste|deja poste|le colis|suivi|quand.{0,25}(recevoir|arrive|partir|poster|envoi))/;
+
+function reponseEnvoiAcheteur(envoi, config) {
+  if (envoi === "envoye") {
+    return ["oui c'est parti, tu peux suivre le colis dans ta commande", "oui il est envoyé, le suivi est dans ta commande"];
+  }
+  if (envoi === "livre") return ["il est marqué livré de mon côté"];
+  return config.modeles?.delaiEnvoi
+    ? [`pas encore, je l'envoie ${config.modeles.delaiEnvoi}`]
+    : ["pas encore, je l'envoie dès que je peux", "pas encore mais je l'envoie dès que je peux"];
+}
+
+// Article plus disponible (vendu à quelqu'un d'autre ou supprimé) : un seul message, puis plus rien.
+const PLUS_DISPO = ["désolée, il est plus dispo", "désolée, l'article est plus disponible", "ah désolée il est plus dispo"];
+
+export function reponsePlusDispo(conv) {
+  const messages = conv.messages || [];
+  const dejaDit = messages.some((m) => m.de === "moi" && /plus dispo|vendu|deja parti/.test(sansAccents(m.texte)));
+  if (dejaDit) {
+    return { reponse: "", besoin_humain: false, rien: true, raison: "article plus dispo, déjà dit", problemes: [], essais: 0, regles: ["indisponible"] };
+  }
+  return { reponse: choisir(PLUS_DISPO, []), besoin_humain: false, raison: "", problemes: [], essais: 0, regles: ["indisponible"] };
+}
+
+// Premier message à quelqu'un qui a liké une annonce. Vouvoiement (premier contact).
+// "Pas mal de likes" seulement si c'est vrai (nombre de favoris au-dessus du seuil).
+const MESSAGES_LIKE = [
+  "Bonjour, j'ai vu que vous aviez liké mon annonce, elle est toujours dispo et prête à partir si ça vous intéresse",
+  "Bonjour, vous avez mis mon annonce en favori, si ça vous intéresse tout est prêt à être envoyé",
+  "Bonjour, j'ai vu votre like sur mon annonce, l'article est prêt à partir si jamais ça vous tente",
+  "Bonjour, merci pour le like, l'article est toujours dispo et prêt à être envoyé si vous le voulez",
+];
+const AJOUT_POPULAIRE = ["il a pas mal de likes", "il y a pas mal de monde dessus"];
+
+export function messageLike({ favoris = 0, seuilPopulaire = 5 } = {}) {
+  const base = choisir(MESSAGES_LIKE, []);
+  if (favoris >= seuilPopulaire && seuilPopulaire > 0) return `${base}, ${choisir(AJOUT_POPULAIRE, [])}`;
+  return base;
+}
+
 // Accusé de réception sans question : pas besoin de répondre.
 const RIEN = /^\s*(merci|ok|d'accord|dac|super|top|parfait|cool|ca marche|tres bien)\b[^?]{0,25}$/;
 // Message seul qui ne demande rien : salutation, emoji, ponctuation.
@@ -140,6 +181,7 @@ const VOUVOIEMENT = [
   [/\btu peux\b/g, "vous pouvez"],
   [/\bregarde les\b/g, "regardez les"],
   [/\bce qui t'intéresse\b/g, "ce qui vous intéresse"],
+  [/\bta commande\b/g, "votre commande"],
 ];
 
 export function vouvoyer(texte) {
@@ -190,6 +232,12 @@ export function repondreAvecModeles(conv, config = {}) {
     .filter((m) => m.de === "moi")
     .flatMap((m) => sansAccents(m.texte).replace(/^(bonjour|salut), /, "").split(". "));
   const fin = (r) => ({ problemes: [], essais: 0, ...r });
+
+  // L'acheteur de l'article demande où en est l'envoi : réponse d'après le statut Vinted.
+  if (conv.article?.achete && ENVOI_ACHETEUR.test(q) && !REGLES_HUMAIN.some((r) => r.motif.test(q))) {
+    const texte = choisir(reponseEnvoiAcheteur(conv.article.envoi, config), dejaEnvoye);
+    return fin({ reponse: vous ? vouvoyer(texte) : texte, besoin_humain: false, raison: "", regles: ["envoiAcheteur"] });
+  }
 
   const humain = REGLES_HUMAIN.find((r) => r.motif.test(q));
   if (humain) {

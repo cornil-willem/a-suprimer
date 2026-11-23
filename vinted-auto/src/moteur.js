@@ -2,7 +2,7 @@
 //   "modeles" : phrases toutes faites (gratuit).
 //   "local"   : phrases toutes faites, et IA locale (Ollama, gratuit) pour les questions pas reconnues.
 //   "claude"  : Claude pour tout (payant).
-import { repondreAvecModeles } from "./modeles.js";
+import { repondreAvecModeles, reponsePlusDispo } from "./modeles.js";
 
 /**
  * @param {object} config
@@ -11,17 +11,10 @@ import { repondreAvecModeles } from "./modeles.js";
  * @param {{lireAnnonce: () => Promise<string>, genererClaude: Function, genererLocal: Function}} deps
  */
 export async function produireReponse(config, conv, fiche, deps) {
-  // Article vendu à quelqu'un d'autre ou supprimé : rien d'automatique, Julie décide.
-  if (conv.article?.indisponible) {
-    return {
-      reponse: "",
-      besoin_humain: true,
-      raison: "article plus disponible (vendu ou supprimé)",
-      problemes: [],
-      regles: ["indisponible"],
-      source: "modeles",
-    };
-  }
+  // Article vendu à quelqu'un d'autre ou supprimé : « désolée, il est plus dispo » une seule fois,
+  // puis plus aucune réponse dans cette conversation. L'acheteur, lui, n'est pas concerné
+  // (pour lui l'article n'est pas « indisponible », il l'a acheté).
+  if (conv.article?.indisponible) return { ...reponsePlusDispo(conv), source: "modeles" };
   if (config.moteur === "claude") {
     const r = await deps.genererClaude(config, { annonce: await deps.lireAnnonce(), messages: conv.messages, fiche });
     return { ...r, source: "claude" };

@@ -281,6 +281,22 @@ export class Vinted {
     return r.json?.notifications || [];
   }
 
+  // Personnes qui ont liké une annonce : [{ id, itemId, userId, login }].
+  // NON VÉRIFIÉ : /api/v2/notifications répond 404 (diagnostic du 2026-11-22).
+  // À trouver sur vinted.fr : ouvrir la cloche des notifications avec les outils
+  // développeur (onglet Réseau) et relever la requête qui renvoie les likes.
+  async listerLikes() {
+    const notifs = await this.listerNotifications();
+    return notifs
+      .filter((n) => /favori/i.test(n.body || n.title || ""))
+      .map((n) => ({
+        id: String(n.id),
+        itemId: String(n.subject_id ?? (n.link || "").match(/items\/(\d+)/)?.[1] ?? ""),
+        userId: n.user_id ?? n.actor_id ?? n.user?.id ?? null,
+        login: n.user?.login ?? (n.body || "").split(" ")[0] ?? "",
+      }));
+  }
+
   async ouvrirConversationVendeur(itemId, acheteurId) {
     const r = await this.requete("POST", `/api/v2/conversations`, {
       body: { initiator: "seller_enters_notification", item_id: itemId, opposite_user_id: acheteurId },
@@ -337,10 +353,22 @@ export function normaliserConversation(conv, monId) {
       indisponible:
         Boolean(t.item_is_closed && !t.purchase_id) ||
         messages.some((m) => m.de === "vinted" && /plus disponible/i.test(m.texte)),
+      // Cette personne a acheté l'article (achat dans cette conversation).
+      // NON VÉRIFIÉ : purchase_id lu dans la transaction, à confirmer sur une vente réelle.
+      achete: Boolean(t.purchase_id),
+      envoi: etatEnvoi(messages),
     },
     messages,
     dernier: messages[messages.length - 1] || null,
   };
+}
+
+// Statut d'envoi d'après les messages Vinted de la conversation (« Commande envoyée », « Livrée »).
+export function etatEnvoi(messages) {
+  const systeme = messages.filter((m) => m.de === "vinted").map((m) => m.texte.toLowerCase());
+  if (systeme.some((t) => /livr[ée]/.test(t) && !/probl[eè]me/.test(t))) return "livre";
+  if (systeme.some((t) => /envoy[ée]|exp[ée]di[ée]|en route|en transit/.test(t))) return "envoye";
+  return null;
 }
 
 // Version texte d'un article pour le prompt Claude.

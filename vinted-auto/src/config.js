@@ -67,11 +67,20 @@ export const CONFIG_PAR_DEFAUT = {
     prixMinPct: 80,
   },
 
-  // EXPÉRIMENTAL
+  // EXPÉRIMENTAL : contacter les personnes qui likent une annonce.
+  // La route Vinted des likes n'est pas encore trouvée (notifications : 404).
   offresLikes: {
     actif: false,
+    // Message "j'ai vu que vous aviez liké mon annonce...".
+    message: true,
+    // Faire aussi une offre avec remise (route non vérifiée).
+    offre: false,
     remisePct: 15,
     maxParJour: 20,
+    // "il a pas mal de likes" seulement si l'annonce a au moins ce nombre de favoris.
+    seuilPopulaire: 5,
+    // Envoi sans validation (en mode Auto). Sinon : brouillon dans le popup.
+    envoiAuto: false,
   },
 
   // EXPÉRIMENTAL : supprime puis recrée l'annonce (mêmes photos, même texte).

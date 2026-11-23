@@ -3,6 +3,7 @@ import { CONFIG_PAR_DEFAUT, fusionnerConfig } from "./config.js";
 import { Vinted, normaliserConversation, decrireArticle } from "./vinted.js";
 import { genererReponse, expliquerErreurClaude } from "./claude.js";
 import { genererReponseLocale } from "./local.js";
+import { messageLike } from "./modeles.js";
 import { produireReponse, peutPartirSeule, aRelire } from "./moteur.js";
 import { deciderOffre, prixOffreLike } from "./negociation.js";
 
@@ -275,32 +276,62 @@ async function traiterOffre(v, config, conv, offre, suivi) {
 }
 
 // ---------- Offres aux personnes qui likent (EXPÉRIMENTAL) ----------
+// Contacte les personnes qui likent une annonce : message (et offre si cochée).
+// Une seule fois par personne et par annonce, jamais si l'annonce est vendue, réservée ou masquée.
 async function passeOffresLikes(config) {
+  const o = config.offresLikes;
   const v = await new Vinted(config).init();
   const etat = await lireEtat();
   if (etat.offresLikesJour.date !== aujourdhui()) etat.offresLikesJour = { date: aujourdhui(), n: 0 };
 
-  const notifs = await v.listerNotifications();
-  const likes = notifs.filter((n) => /favori/i.test(n.body || n.title || "") && !etat.likesTraites[n.id]);
+  const likes = (await v.listerLikes()).filter((l) => !etat.likesTraites[`${l.itemId}:${l.userId}`]);
   if (!likes.length) return { ok: true };
 
-  const prixParArticle = new Map((await v.listerArticles()).map((a) => [String(a.id), a]));
+  const articles = new Map((await v.listerArticles()).map((a) => [String(a.id), a]));
 
-  for (const n of likes) {
-    if (etat.offresLikesJour.n >= config.offresLikes.maxParJour) break;
-    etat.likesTraites[n.id] = true;
-    const itemId = String(n.subject_id ?? (n.link || "").match(/items\/(\d+)/)?.[1] ?? "");
-    const acheteurId = n.user_id ?? n.actor_id ?? n.user?.id ?? null;
-    const article = prixParArticle.get(itemId);
-    if (!article || !acheteurId) {
-      await journal(`Like ignoré : article ou acheteur introuvable dans la notification ${n.id}`, "erreur");
+  for (const like of likes) {
+    if (etat.offresLikesJour.n >= o.maxParJour) break;
+    etat.likesTraites[`${like.itemId}:${like.userId}`] = true;
+    const article = articles.get(like.itemId);
+    if (!article || !like.userId) {
+      await journal(`Like ignoré : article ou personne introuvable (${like.id})`, "erreur");
       continue;
     }
-    const prix = prixOffreLike(Number(article.price?.amount ?? article.price), config.offresLikes.remisePct);
-    const conv = await v.ouvrirConversationVendeur(Number(itemId), acheteurId);
-    await v.faireOffre(conv?.transaction?.id, prix);
+    if (article.is_closed || article.is_reserved || article.is_hidden) continue;
+
+    const texte = o.message
+      ? messageLike({ favoris: Number(article.favourite_count ?? 0), seuilPopulaire: o.seuilPopulaire })
+      : "";
+    const direct = config.mode === "auto" && o.envoiAuto;
+
+    if (!direct) {
+      // Brouillon : la conversation n'existe pas encore, elle sera ouverte à l'envoi.
+      const frais = await lireEtat();
+      frais.brouillons.unshift({
+        id: crypto.randomUUID(),
+        type: "like",
+        itemId: like.itemId,
+        userId: like.userId,
+        acheteur: like.login || "quelqu'un",
+        article: article.title,
+        question: "(a liké l'annonce)",
+        reponse: texte,
+        besoinHumain: false,
+        date: new Date().toISOString(),
+      });
+      frais.brouillons = frais.brouillons.slice(0, 50);
+      await sauverEtat(frais);
+      await journal(`Brouillon pour ${like.login || "un like"} sur "${article.title}"`);
+    } else {
+      const conv = await v.ouvrirConversationVendeur(Number(like.itemId), like.userId);
+      if (texte) await v.envoyerMessage(conv.id, texte);
+      if (o.offre) {
+        const prix = prixOffreLike(Number(article.price?.amount ?? article.price), o.remisePct);
+        await v.faireOffre(conv?.transaction?.id, prix);
+      }
+      await journal(`Like de ${like.login || "quelqu'un"} sur "${article.title}" : ${texte ? `"${texte}"` : ""}${o.offre ? " + offre" : ""}`);
+    }
     etat.offresLikesJour.n++;
-    await journal(`Offre ${prix} € envoyée pour "${article.title}" à quelqu'un qui a liké`);
     await pause(aleatoire(20000, 60000));
   }
   etat.likesTraites = Object.fromEntries(Object.entries(etat.likesTraites).slice(-500));
@@ -466,7 +497,13 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
           const b = etat.brouillons.find((x) => x.id === msg.id);
           if (!b) return { ok: false, raison: "brouillon introuvable" };
           const v = await new Vinted(config).init();
-          await v.envoyerMessage(b.conversationId, msg.texte);
+          if (b.type === "like") {
+            // Personne qui a liké : on ouvre la conversation sur l'annonce, puis on écrit.
+            const conv = await v.ouvrirConversationVendeur(Number(b.itemId), b.userId);
+            await v.envoyerMessage(conv.id, msg.texte);
+          } else {
+            await v.envoyerMessage(b.conversationId, msg.texte);
+          }
           const frais = await lireEtat();
           frais.brouillons = frais.brouillons.filter((x) => x.id !== msg.id);
           await sauverEtat(frais);
