@@ -21,6 +21,10 @@ export const CONFIG_PAR_DEFAUT = {
     modele: "gemma3:12b",
     // Au-delà, la réponse est abandonnée (notification). Gros modèle sur CPU : augmente.
     delaiMaxSec: 120,
+    // Durée pendant laquelle Ollama garde le modèle en mémoire après une réponse ("30m", "8h", ou le nombre -1 = toujours).
+    // Sans carte graphique, le premier appel après un déchargement est long : gemma3:12b sur un
+    // Core Ultra 5 125H (CPU seul) met 4 à 6,5 minutes à froid, 15 à 30 s à chaud (mesuré le 2026-11-23).
+    keepAlive: "30m",
     // Bas = le modèle suit mieux les règles et invente moins.
     temperature: 0.2,
     // Mode Auto : les réponses de l'IA locale partent seules seulement si c'est coché.
@@ -68,7 +72,8 @@ export const CONFIG_PAR_DEFAUT = {
   },
 
   // EXPÉRIMENTAL : contacter les personnes qui likent une annonce.
-  // La route Vinted des likes n'est pas encore trouvée (notifications : 404).
+  // Routes relevées sur le site le 2026-11-23 (notifications et inquiries sur api.vinted.fr).
+  // Aucun envoi réel essayé pour l'instant.
   offresLikes: {
     actif: false,
     // Message "j'ai vu que vous aviez liké mon annonce...".
@@ -91,6 +96,32 @@ export const CONFIG_PAR_DEFAUT = {
     ageMinJours: 7,
   },
 };
+
+// Réglages propres à un PC, dans extension/reglages-pc.json (hors git), appliqués quand on charge
+// ou recharge l'extension. Exemple : { "local.modele": "gemma3:12b", "local.delaiMaxSec": 300, "personnalite": "defaut" }.
+// Seulement ces clés. Jamais actif, mode, clé API ni envoi sans validation : ça reste un choix fait à la main.
+export const CLES_REGLAGES_PC = [
+  "moteur",
+  "local.url",
+  "local.modele",
+  "local.delaiMaxSec",
+  "local.keepAlive",
+  "modeles.delaiEnvoi",
+  "personnalite",
+  "offresLikes.actif",
+];
+
+export function appliquerReglagesPc(stockee, reglages = {}) {
+  const config = fusionnerConfig(stockee);
+  for (const cle of CLES_REGLAGES_PC) {
+    if (!(cle in reglages)) continue;
+    const valeur = cle === "personnalite" && reglages[cle] === "defaut" ? CONFIG_PAR_DEFAUT.personnalite : reglages[cle];
+    const [groupe, sous] = cle.split(".");
+    if (sous) config[groupe] = { ...config[groupe], [sous]: valeur };
+    else config[groupe] = valeur;
+  }
+  return config;
+}
 
 // Fusion profonde : garde les nouvelles clés par défaut quand la config stockée est ancienne.
 export function fusionnerConfig(stockee) {

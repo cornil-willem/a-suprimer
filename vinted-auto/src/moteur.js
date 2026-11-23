@@ -11,6 +11,18 @@ import { repondreAvecModeles, reponsePlusDispo } from "./modeles.js";
  * @param {{lireAnnonce: () => Promise<string>, genererClaude: Function, genererLocal: Function}} deps
  */
 export async function produireReponse(config, conv, fiche, deps) {
+  // Litige, problème après livraison ou retour sur la commande : aucune réponse automatique, notification.
+  if (conv.article?.litige) {
+    return {
+      reponse: "",
+      besoin_humain: true,
+      raison: "litige ou retour en cours sur cette commande",
+      problemes: [],
+      essais: 0,
+      regles: ["litige"],
+      source: "modeles",
+    };
+  }
   // Article vendu à quelqu'un d'autre ou supprimé : « désolée, il est plus dispo » une seule fois,
   // puis plus aucune réponse dans cette conversation. L'acheteur, lui, n'est pas concerné
   // (pour lui l'article n'est pas « indisponible », il l'a acheté).

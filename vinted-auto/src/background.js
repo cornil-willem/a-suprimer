@@ -1,6 +1,6 @@
 // Service worker de l'extension : planifie et exécute les tâches.
-import { CONFIG_PAR_DEFAUT, fusionnerConfig } from "./config.js";
-import { Vinted, normaliserConversation, decrireArticle } from "./vinted.js";
+import { CONFIG_PAR_DEFAUT, fusionnerConfig, appliquerReglagesPc } from "./config.js";
+import { Vinted, normaliserConversation, decrireArticle, hoteApi, likesDepuisNotifications } from "./vinted.js";
 import { genererReponse, expliquerErreurClaude } from "./claude.js";
 import { genererReponseLocale } from "./local.js";
 import { messageLike } from "./modeles.js";
@@ -103,9 +103,30 @@ async function programmerAlarmes() {
   chrome.alarms.create("planning", { periodInMinutes: 5 });
 }
 
+// extension/reglages-pc.json : appliqué une fois par contenu (une modif dans les Options reste ensuite).
+async function lireReglagesPc() {
+  let texte;
+  try {
+    const r = await fetch(chrome.runtime.getURL("reglages-pc.json"));
+    if (!r.ok) return;
+    texte = await r.text();
+  } catch {
+    return; // pas de fichier : rien à faire
+  }
+  const { config, reglagesPc } = await chrome.storage.local.get(["config", "reglagesPc"]);
+  if (reglagesPc === texte) return;
+  try {
+    await chrome.storage.local.set({ config: appliquerReglagesPc(config, JSON.parse(texte)), reglagesPc: texte });
+    await journal("Réglages du PC appliqués (reglages-pc.json)");
+  } catch (e) {
+    await journal(`reglages-pc.json illisible : ${e.message}`, "erreur");
+  }
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   const { config } = await chrome.storage.local.get("config");
   if (!config) await chrome.storage.local.set({ config: CONFIG_PAR_DEFAUT });
+  await lireReglagesPc();
   await programmerAlarmes();
 });
 chrome.runtime.onStartup.addListener(programmerAlarmes);
@@ -323,16 +344,17 @@ async function passeOffresLikes(config) {
       await sauverEtat(frais);
       await journal(`Brouillon pour ${like.login || "un like"} sur "${article.title}"`);
     } else {
-      const conv = await v.ouvrirConversationVendeur(Number(like.itemId), like.userId);
+      const conv = await v.ouvrirConversationVendeur(like.itemId, like.userId);
       if (texte) await v.envoyerMessage(conv.id, texte);
       if (o.offre) {
         const prix = prixOffreLike(Number(article.price?.amount ?? article.price), o.remisePct);
-        await v.faireOffre(conv?.transaction?.id, prix);
+        await v.faireOffre(conv.transactionId, prix);
       }
       await journal(`Like de ${like.login || "quelqu'un"} sur "${article.title}" : ${texte ? `"${texte}"` : ""}${o.offre ? " + offre" : ""}`);
+      // Pause seulement après un vrai envoi : un brouillon ne touche pas à Vinted.
+      await pause(aleatoire(20000, 60000));
     }
     etat.offresLikesJour.n++;
-    await pause(aleatoire(20000, 60000));
   }
   etat.likesTraites = Object.fromEntries(Object.entries(etat.likesTraites).slice(-500));
   const frais = await lireEtat();
@@ -462,8 +484,26 @@ async function diagnostic(config) {
     noter("dressing.items[0]", { cles: cles(a0) });
     await tester("article (item_upload)", `/api/v2/item_upload/items/${a0.id}`);
   }
-  const notifs = await tester("notifications", "/api/v2/notifications?page=1&per_page=5");
-  if (notifs?.notifications?.[0]) noter("notifications[0]", { cles: cles(notifs.notifications[0]) });
+  const api = hoteApi(config.domaine);
+  const notifs = await tester("notifications (api)", `${api}/inbox-notifications/v1/notifications?page=1&per_page=20`);
+  if (notifs?.notifications?.[0]) {
+    noter("notifications[0]", {
+      cles: cles(notifs.notifications[0]),
+      likesLisibles: likesDepuisNotifications(notifs.notifications).length,
+      typesEntrees: [...new Set(notifs.notifications.map((n) => n.entry_type))],
+    });
+  }
+  // Route d'envoi des réponses (lecture seule ici).
+  if (c0) await tester("messagerie (api)", `${api}/messaging/main/conversations/${c0.id}`);
+  // Route pour écrire à quelqu'un qui a liké. Corps vide : Vinted répond 400 sans rien créer.
+  try {
+    const r = await v.requete("POST", `${api}/messaging/main/inquiries`, { body: {} });
+    noter("inquiries (corps vide, 400 attendu)", { status: r.status, code: r.json?.code ?? null });
+  } catch (e) {
+    noter("inquiries (corps vide, 400 attendu)", { ok: false, erreur: e.message });
+  }
+  // Ancienne route, 404 depuis le 2026-11-22. Gardée pour voir si elle revient.
+  await tester("notifications (ancienne)", "/api/v2/notifications?page=1&per_page=5");
   return rapport;
 }
 
@@ -473,7 +513,12 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
     const config = await lireConfig();
     switch (msg.type) {
       case "lancer":
-        return exclusif("Lancement manuel", () => passeMessages(config, { forcer: true }));
+        return exclusif("Lancement manuel", async () => {
+          const r = await passeMessages(config, { forcer: true });
+          // Likes aussi, sans attendre la prochaine alarme (brouillons par défaut).
+          if (config.offresLikes.actif) await passeOffresLikes(config);
+          return r;
+        });
       case "republierMaintenant":
         return exclusif("Republication", () => passeRepublication(config, { forcer: true }));
       case "diagnostic":
@@ -499,7 +544,7 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
           const v = await new Vinted(config).init();
           if (b.type === "like") {
             // Personne qui a liké : on ouvre la conversation sur l'annonce, puis on écrit.
-            const conv = await v.ouvrirConversationVendeur(Number(b.itemId), b.userId);
+            const conv = await v.ouvrirConversationVendeur(b.itemId, b.userId);
             await v.envoyerMessage(conv.id, msg.texte);
           } else {
             await v.envoyerMessage(b.conversationId, msg.texte);

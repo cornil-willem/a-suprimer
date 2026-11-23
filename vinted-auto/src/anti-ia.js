@@ -61,6 +61,8 @@ export function nettoyerTypo(texte) {
     .replace(/^#+\s*/gm, "")
     .replace(/[ \t]+/g, " ")
     .replace(/ ,/g, ",")
+    // Le compte est celui de Julie : « désolé » parle toujours d'elle (vu avec gemma3:12b le 2026-11-23).
+    .replace(/(^|[^\p{L}])([dD]ésolé)(?!\p{L})/gu, "$1$2e")
     .trim();
 }
 

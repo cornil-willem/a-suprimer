@@ -7,6 +7,16 @@
 // ATTENTION : ces routes ne sont pas documentées et peuvent changer sans prévenir.
 // Celles marquées "NON VÉRIFIÉ" n'ont pas encore été testées sur un vrai compte.
 // Utilise le bouton "Diagnostic" du popup pour voir ce qui répond.
+//
+// Depuis novembre 2026, le site appelle aussi une API sur un autre hôte (https://api.vinted.fr) :
+// messagerie (/messaging/main/...) et notifications (/inbox-notifications/v1/...).
+// Elle accepte les cookies de l'onglet vinted.fr (credentials: "include").
+import { sansAccents } from "./anti-ia.js";
+
+// https://api.vinted.fr pour www.vinted.fr.
+export function hoteApi(domaine) {
+  return `https://api.${String(domaine).replace(/^www\./, "")}`;
+}
 
 // ---------- Fonction injectée dans l'onglet Vinted ----------
 // Elle doit être autonome : Chrome la sérialise et l'exécute dans la page.
@@ -160,12 +170,21 @@ export class Vinted {
     return r.json?.conversation || null;
   }
 
+  // Route relevée dans le code du site le 2026-11-23 (bouton Envoyer de la messagerie) :
+  // POST api.vinted.fr/messaging/main/conversations/{id}/replies, { content, is_personal_data_sharing_check_skipped, photo_temp_uuids }.
+  // Elle accepte l'id numérique de /api/v2/inbox (GET vérifié). Envoi réel NON VÉRIFIÉ.
+  // L'ancienne route /api/v2 n'est essayée que si la nouvelle n'existe pas (404/405) : jamais deux envois.
   async envoyerMessage(conversationId, texte) {
-    const r = await this.requete("POST", `/api/v2/conversations/${conversationId}/replies`, {
-      body: {
-        reply: { body: texte, photo_temp_uuids: null, is_personal_data_sharing_check_skipped: false },
-      },
+    let r = await this.requete("POST", `${hoteApi(this.config.domaine)}/messaging/main/conversations/${conversationId}/replies`, {
+      body: { content: texte, is_personal_data_sharing_check_skipped: false, photo_temp_uuids: null },
     });
+    if (r.status === 404 || r.status === 405) {
+      r = await this.requete("POST", `/api/v2/conversations/${conversationId}/replies`, {
+        body: {
+          reply: { body: texte, photo_temp_uuids: null, is_personal_data_sharing_check_skipped: false },
+        },
+      });
+    }
     if (!r.ok) throw new Error(`envoi message : HTTP ${r.status} ${JSON.stringify(r.json || r.apercu)}`);
     return r.json;
   }
@@ -275,35 +294,58 @@ export class Vinted {
     if (!r.ok) throw new Error(`offre : HTTP ${r.status} ${JSON.stringify(r.json || r.apercu)}`);
   }
 
-  async listerNotifications() {
-    const r = await this.get(`/api/v2/notifications?page=1&per_page=30`);
+  // Vérifié le 2026-11-23 : c'est la requête de la cloche des notifications du site.
+  // /api/v2/notifications répond 404 depuis au moins le 2026-11-22.
+  async listerNotifications(page = 1) {
+    const r = await this.get(`${hoteApi(this.config.domaine)}/inbox-notifications/v1/notifications?page=${page}&per_page=20`);
     if (!r.ok) throw new Error(`notifications : HTTP ${r.status}`);
-    return r.json?.notifications || [];
+    return { notifications: r.json?.notifications || [], pages: Number(r.json?.pagination?.total_pages) || 1 };
   }
 
-  // Personnes qui ont liké une annonce : [{ id, itemId, userId, login }].
-  // NON VÉRIFIÉ : /api/v2/notifications répond 404 (diagnostic du 2026-11-22).
-  // À trouver sur vinted.fr : ouvrir la cloche des notifications avec les outils
-  // développeur (onglet Réseau) et relever la requête qui renvoie les likes.
-  async listerLikes() {
-    const notifs = await this.listerNotifications();
-    return notifs
-      .filter((n) => /favori/i.test(n.body || n.title || ""))
-      .map((n) => ({
-        id: String(n.id),
-        itemId: String(n.subject_id ?? (n.link || "").match(/items\/(\d+)/)?.[1] ?? ""),
-        userId: n.user_id ?? n.actor_id ?? n.user?.id ?? null,
-        login: n.user?.login ?? (n.body || "").split(" ")[0] ?? "",
-      }));
+  // Personnes qui ont liké une annonce : [{ id, itemId, userId, login }]. Les 2 premières pages suffisent :
+  // les likes déjà traités sont mémorisés, et on passe toutes les 5 minutes.
+  async listerLikes(pagesMax = 2) {
+    const likes = [];
+    for (let page = 1; page <= pagesMax; page++) {
+      const { notifications, pages } = await this.listerNotifications(page);
+      likes.push(...likesDepuisNotifications(notifications));
+      if (page >= pages || !notifications.length) break;
+    }
+    return likes;
   }
 
+  // Écrire à quelqu'un qui a liké : relevé le 2026-11-23 dans le code du site.
+  // Le lien de la notification mène à /inbox/want_it?receiver_id=…&item_id=…, page qui fait aussitôt
+  // POST api.vinted.fr/messaging/main/inquiries { item_ids: ["<article>"], receiver_id: "<personne>" }
+  // (des chaînes : des nombres donnent 400) et reçoit { conversation_id, transaction_id }.
+  // Corps vide : 400 « cannot parse receiver id » (vérifié). Création réelle NON VÉRIFIÉE.
   async ouvrirConversationVendeur(itemId, acheteurId) {
-    const r = await this.requete("POST", `/api/v2/conversations`, {
-      body: { initiator: "seller_enters_notification", item_id: itemId, opposite_user_id: acheteurId },
+    const r = await this.requete("POST", `${hoteApi(this.config.domaine)}/messaging/main/inquiries`, {
+      body: { item_ids: [String(itemId)], receiver_id: String(acheteurId) },
     });
-    if (!r.ok) throw new Error(`ouvrir conversation : HTTP ${r.status}`);
-    return r.json?.conversation;
+    if (!r.ok || !r.json?.conversation_id) {
+      throw new Error(`ouvrir conversation : HTTP ${r.status} ${JSON.stringify(r.json || r.apercu)}`);
+    }
+    return { id: String(r.json.conversation_id), transactionId: r.json.transaction_id ?? null };
   }
+}
+
+// Notifications de like : entry_type 20, body « <login> a ajouté ton article <titre> à ses favoris. »,
+// subject_id = l'article, user_id = toi (le destinataire, pas la personne qui like),
+// link = « vintedfr://messaging?item_id=<article>&user_id=<personne qui like>&portal=fr ». Vérifié le 2026-11-23.
+export function likesDepuisNotifications(notifications) {
+  return (notifications || [])
+    .filter((n) => n.entry_type === 20 || /ses favoris/i.test(n.body || ""))
+    .map((n) => {
+      const params = new URLSearchParams(String(n.link || "").split("?")[1] || "");
+      return {
+        id: String(n.id),
+        itemId: String(params.get("item_id") || n.subject_id || ""),
+        userId: params.get("user_id") || null,
+        login: (n.body || "").split(" ")[0] || "",
+      };
+    })
+    .filter((l) => l.itemId && l.userId);
 }
 
 // ---------- Normalisation ----------
@@ -338,6 +380,7 @@ export function normaliserConversation(conv, monId) {
     .filter((m) => m.texte || m.prix);
 
   const t = conv.transaction || {};
+  const envoi = etatEnvoi(messages);
   return {
     id: String(conv.id),
     acheteur: conv.opposite_user?.login || "acheteur",
@@ -354,21 +397,42 @@ export function normaliserConversation(conv, monId) {
         Boolean(t.item_is_closed && !t.purchase_id) ||
         messages.some((m) => m.de === "vinted" && /plus disponible/i.test(m.texte)),
       // Cette personne a acheté l'article (achat dans cette conversation).
-      // NON VÉRIFIÉ : purchase_id lu dans la transaction, à confirmer sur une vente réelle.
-      achete: Boolean(t.purchase_id),
-      envoi: etatEnvoi(messages),
+      // Vérifié le 2026-11-23 sur 16 conversations : purchase_id est une chaîne après un achat, null sinon.
+      // buyer_id ne sert à rien ici : il vaut l'autre personne dans toutes les conversations, même sans achat.
+      // Une commande annulée garde son purchase_id : elle ne compte plus comme achat.
+      achete: Boolean(t.purchase_id) && envoi !== "annule",
+      envoi,
+      // Litige, problème après livraison ou retour : plus aucune réponse automatique, notification.
+      litige: envoi === "probleme",
     },
     messages,
     dernier: messages[messages.length - 1] || null,
   };
 }
 
-// Statut d'envoi d'après les messages Vinted de la conversation (« Commande envoyée », « Livrée »).
+// Statut de la commande d'après les messages Vinted de la conversation, lus dans l'ordre.
+// Titres exacts relevés le 2026-11-23 (status_message / action_message, champ title) :
+//   « Vendu », « Article à emballer et envoyer (avant le 30 nov. 10:00) » (pas encore envoyé),
+//   « Commande envoyée », « Colis envoyé à l’acheteur. », « Ton colis est arrivé ! »,
+//   « Livrée », « Evaluation ajoutée », « Ta vente est finalisée. »,
+//   « L'acheteur a annulé la commande », « Article remis en ligne »,
+//   « Problème après la livraison », « Retourné », « Commande en cours de retour ».
+// Renvoie null (pas encore envoyé), "envoye", "livre", "annule" ou "probleme" (litige ou retour, définitif).
 export function etatEnvoi(messages) {
-  const systeme = messages.filter((m) => m.de === "vinted").map((m) => m.texte.toLowerCase());
-  if (systeme.some((t) => /livr[ée]/.test(t) && !/probl[eè]me/.test(t))) return "livre";
-  if (systeme.some((t) => /envoy[ée]|exp[ée]di[ée]|en route|en transit/.test(t))) return "envoye";
-  return null;
+  let etat = null;
+  let probleme = false;
+  for (const m of messages) {
+    if (m.de !== "vinted") continue;
+    const t = sansAccents(m.texte || "").trim();
+    if (/probleme|litige|retour|rembours|reclamation/.test(t)) probleme = true;
+    else if (/annul/.test(t)) etat = "annule";
+    else if (/^vendue?$/.test(t)) etat = null;
+    else if (/\blivree?s?\b|vente est finalisee/.test(t)) etat = "livre";
+    // « envoyer » (à emballer et envoyer) ne compte pas : \b après envoye(e).
+    // « Ton colis est arrivé » : compté comme envoyé, la réponse reste vraie dans tous les cas.
+    else if (/(commande|colis) (a ete |est )?envoyee?\b|\bexpediee?\b|en transit|en route|colis est arrive/.test(t)) etat = "envoye";
+  }
+  return probleme ? "probleme" : etat;
 }
 
 // Version texte d'un article pour le prompt Claude.

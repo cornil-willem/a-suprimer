@@ -95,3 +95,9 @@ test("tu ou vous comme l'acheteur", () => {
   assert.equal(verifierTexte("oui toujours dispo", { forme: "vous" }).ok, true);
 });
 const regles2 = (t, forme) => verifierTexte(t, { forme }).problemes.map((p) => p.regle);
+
+test("désolé au féminin (compte de Julie)", () => {
+  assert.equal(nettoyerTypo("bonjour, je sais pas désolé"), "bonjour, je sais pas désolée");
+  assert.equal(nettoyerTypo("Désolé, il est vendu"), "Désolée, il est vendu");
+  assert.equal(nettoyerTypo("désolée je passe que par Vinted"), "désolée je passe que par Vinted");
+});

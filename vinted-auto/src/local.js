@@ -39,7 +39,7 @@ async function appeler(config, systeme, contenu) {
         model: config.local.modele,
         stream: false,
         format: SCHEMA,
-        keep_alive: "30m",
+        keep_alive: config.local.keepAlive || "30m",
         options: { temperature: config.local.temperature ?? 0.2 },
         messages: [
           { role: "system", content: systeme },

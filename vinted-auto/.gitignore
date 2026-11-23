@@ -1,1 +1,3 @@
 node_modules/
+# Réglages propres à chaque PC (modèle Ollama, délais...)
+extension/reglages-pc.json
