@@ -234,3 +234,33 @@ test("Republier : requête du site", async () => {
   await v.republierAnnule(333);
   assert.deepEqual(appels, [{ method: "POST", path: "/api/v2/transactions/333/reupload", body: undefined }]);
 });
+// ---------- Session expirée : comme le site, POST /web/api/auth/refresh puis un seul nouvel essai ----------
+function fauxChrome(reponses) {
+  const appels = [];
+  globalThis.chrome = {
+    scripting: {
+      executeScript: async ({ args }) => {
+        appels.push(`${args[0].method} ${args[0].path}`);
+        const r = reponses.shift();
+        return [{ result: { status: r, ok: r >= 200 && r < 300, json: r === 401 ? { code: 100 } : {} } }];
+      },
+    },
+  };
+  const v = new Vinted({ domaine: "www.vinted.fr" });
+  v.tabId = 1;
+  return { v, appels };
+}
+
+test("401 : session renouvelée puis requête refaite", async () => {
+  const { v, appels } = fauxChrome([401, 200, 200]);
+  const r = await v.get("/api/v2/inbox?page=1&per_page=20");
+  assert.equal(r.status, 200);
+  assert.deepEqual(appels, ["GET /api/v2/inbox?page=1&per_page=20", "POST /web/api/auth/refresh", "GET /api/v2/inbox?page=1&per_page=20"]);
+});
+
+test("401 : renouvellement refusé, une seule tentative puis erreur claire", async () => {
+  const { v, appels } = fauxChrome([401, 401]);
+  await assert.rejects(() => v.get("/api/v2/inbox"), /session expirée/);
+  assert.equal(appels.length, 2);
+  delete globalThis.chrome;
+});

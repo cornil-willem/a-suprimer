@@ -127,14 +127,15 @@ export class Vinted {
   }
 
   async requete(method, path, { body, form } = {}) {
-    const executer = async () =>
+    const dansPage = async (args) =>
       (
         await chrome.scripting.executeScript({
           target: { tabId: this.tabId },
           func: requetePage,
-          args: [{ method, path, body, form }],
+          args: [args],
         })
       )[0]?.result;
+    const executer = () => dansPage({ method, path, body, form });
     let result = await executer();
     // Pas de résultat : l'onglet a changé de page pendant la requête (quelqu'un navigue dedans).
     // Une lecture se refait sans risque. Un envoi non : il est peut-être parti.
@@ -142,9 +143,16 @@ export class Vinted {
       await attendreChargement(this.tabId);
       result = await executer();
     }
+    // Jeton d'accès expiré (il dure environ 2 h) : le site fait POST /web/api/auth/refresh puis refait
+    // la requête (relevé dans son code le 2026-11-23). Pareil ici, une seule fois. Un 401 veut dire
+    // que rien n'a été traité : refaire un envoi est sans risque.
+    if (result?.status === 401 && !path.startsWith("/web/api/auth/")) {
+      const rafraichi = await dansPage({ method: "POST", path: "/web/api/auth/refresh" });
+      if (rafraichi?.ok && !rafraichi.json?.errors) result = await executer();
+    }
     if (!result) throw new Error(`Pas de réponse pour ${method} ${path}`);
     if (result.status === 401) {
-      throw new Error("Vinted : non connecté (401). Reconnecte-toi sur vinted.fr");
+      throw new Error("Vinted : session expirée et pas renouvelée (401). Recharge un onglet vinted.fr, ou reconnecte-toi");
     }
     if (result.status === 403 && !result.json) {
       throw new Error("Vinted : bloqué par l'anti-bot (403). Ouvre l'onglet Vinted et fais le captcha");
