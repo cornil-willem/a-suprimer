@@ -277,6 +277,15 @@ export class Vinted {
     if (!r.ok) throw new Error(`suppression ${itemId} : HTTP ${r.status}`);
   }
 
+  // Bouton « Republier » du message Vinted « Expédition annulée. » (action "reupload").
+  // Relevé dans le code du site le 2026-11-23 : POST /api/v2/transactions/{id}/reupload, sans corps.
+  // Vinted ajoute ensuite « Article remis en ligne » dans la conversation. Appel réel NON VÉRIFIÉ.
+  async republierAnnule(transactionId) {
+    const r = await this.requete("POST", `/api/v2/transactions/${transactionId}/reupload`);
+    if (!r.ok) throw new Error(`republier : HTTP ${r.status} ${JSON.stringify(r.json || r.apercu)}`);
+    return r.json;
+  }
+
   // ----- Offres (NON VÉRIFIÉ) -----
 
   async accepterOffre(transactionId, offreId) {
@@ -375,7 +384,9 @@ export function normaliserConversation(conv, monId) {
           statut: e.status ?? e.status_title ?? null,
         };
       }
-      return { ...base, texte: e.title || e.body || e.subtitle || "" };
+      // Boutons des messages Vinted, ex. [{ action: "reupload", title: "Republier" }] (vu le 2026-11-23).
+      const actions = (e.actions || []).map((a) => a.action).filter(Boolean);
+      return { ...base, texte: e.title || e.body || e.subtitle || "", ...(actions.length ? { actions } : {}) };
     })
     .filter((m) => m.texte || m.prix);
 
@@ -404,6 +415,8 @@ export function normaliserConversation(conv, monId) {
       envoi,
       // Litige, problème après livraison ou retour : plus aucune réponse automatique, notification.
       litige: envoi === "probleme",
+      // Commande annulée avec un bouton « Republier » pas encore utilisé.
+      aRepublier: envoi === "annule" && aRepublier(messages),
     },
     messages,
     dernier: messages[messages.length - 1] || null,
@@ -433,6 +446,20 @@ export function etatEnvoi(messages) {
     else if (/(commande|colis) (a ete |est )?envoyee?\b|\bexpediee?\b|en transit|en route|colis est arrive/.test(t)) etat = "envoye";
   }
   return probleme ? "probleme" : etat;
+}
+
+// Vu le 2026-11-23 : « Vendu », « L'acheteur a annulé la commande », puis « Expédition annulée. » avec le
+// bouton Republier (action "reupload"). Après remise en ligne : « Article remis en ligne ».
+// Pas de remise en ligne automatique si c'est le compte qui a annulé (« tu as annulé ») : l'article
+// n'est peut-être plus là.
+export function aRepublier(messages) {
+  const vinted = messages.map((m, i) => ({ ...m, i, plat: sansAccents(m.texte || "") })).filter((m) => m.de === "vinted");
+  const bouton = vinted.filter((m) => m.actions?.includes("reupload")).pop();
+  if (!bouton) return false;
+  if (vinted.some((m) => m.i > bouton.i && /remis en ligne/.test(m.plat))) return false;
+  // Qui a annulé : dernier message d'annulation avant le bouton (« Expédition annulée. » ne le dit pas).
+  const annulation = vinted.filter((m) => m.i < bouton.i && /annul/.test(m.plat)).pop();
+  return !/\b(tu as|vous avez) annule/.test(annulation?.plat || "");
 }
 
 // Version texte d'un article pour le prompt Claude.

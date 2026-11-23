@@ -94,6 +94,7 @@ Plutôt que de remplir les Options à la main, tu peux écrire un fichier `exten
 - Article vendu à quelqu'un d'autre ou supprimé : un seul « désolée, il est plus dispo », puis plus aucune réponse dans cette conversation.
 - La personne qui a acheté : on continue à lui répondre. « C'est envoyé ? » reçoit le vrai statut lu dans Vinted (« Commande envoyée », « Colis envoyé à l'acheteur », « Livrée »), sinon « pas encore, je l'envoie dès que je peux ». « Article à emballer et envoyer » compte comme pas encore envoyé.
 - Commande annulée : la personne n'est plus traitée comme acheteuse.
+- Commande annulée par l'acheteur : l'extension clique toute seule sur « Republier » dans le message Vinted « Expédition annulée. », même en mode Brouillon (ce n'est pas un message à quelqu'un). Vinted crée alors une nouvelle annonce et écrit « Article remis en ligne ». Rien n'est fait si c'est toi qui as annulé, ni en cas de litige ou de retour. Un seul essai par commande ; si ça rate, tu reçois une notification. Case « Remettre en ligne un article quand l'acheteur annule » dans les Options.
 - Litige ou retour signalé par Vinted dans la conversation (« Problème après la livraison », « Retourné », « Commande en cours de retour ») : plus aucune réponse automatique dans cette conversation, tu reçois une notification.
 
 ### Personnes qui likent (expérimental)

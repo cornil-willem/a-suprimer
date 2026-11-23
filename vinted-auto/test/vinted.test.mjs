@@ -190,3 +190,47 @@ test("envoi : ancienne route seulement si la nouvelle n'existe pas", async () =>
   await assert.rejects(() => v.envoyerMessage(9001, "ok"), /HTTP 403/);
   assert.equal(chemins.length, 1);
 });
+
+// ---------- Remise en ligne après annulation : forme relevée le 2026-11-23 (contenus inventés) ----------
+const expeditionAnnulee = {
+  entity_type: "action_message",
+  entity: {
+    template: "x", title: "Expédition annulée.", notification: null, interpolation_values: [],
+    subtitle: "La transaction a été annulée. L’acheteur recevra son remboursement sous 4 à 5 jours ouvrés. Pour plus d’infos, contacte l’équipe support.",
+    actions: [{ action: "reupload", primary: false, title: "Republier" }],
+  },
+};
+const annulation = (premier = "L'acheteur a annulé la commande", ...suite) => ({
+  ...conversation,
+  transaction: { ...transactionAchat, is_completed: false, shipment_status: 500, status: 520, available_actions: ["use_payments"] },
+  messages: [systeme("status_message", "Vendu"), systeme("status_message", premier), expeditionAnnulee, ...suite],
+});
+
+test("annulation par l'acheteur : article à remettre en ligne", () => {
+  const c = normaliserConversation(annulation(), MOI);
+  assert.equal(c.article.envoi, "annule", "« remboursement » dans le sous-titre ne compte pas comme litige");
+  assert.equal(c.article.litige, false);
+  assert.equal(c.article.achete, false);
+  assert.equal(c.article.aRepublier, true);
+  assert.deepEqual(c.messages.at(-1).actions, ["reupload"]);
+});
+
+test("remise en ligne : pas deux fois, pas si le compte a annulé, pas en litige", () => {
+  assert.equal(normaliserConversation(annulation(undefined, systeme("action_message", "Article remis en ligne", "L'article est de nouveau visible sur le catalogue !")), MOI).article.aRepublier, false);
+  assert.equal(normaliserConversation(annulation("Tu as annulé la commande"), MOI).article.aRepublier, false);
+  const retour = {
+    ...conversation,
+    transaction: transactionAchat,
+    messages: [systeme("status_message", "Vendu"), systeme("status_message", "Livrée"), { entity_type: "action_message", entity: { title: "Retourné", actions: [{ action: "reupload", title: "Republier" }] } }],
+  };
+  assert.equal(normaliserConversation(retour, MOI).article.aRepublier, false);
+  assert.equal(normaliserConversation(venteLivree, MOI).article.aRepublier, false);
+});
+
+test("Republier : requête du site", async () => {
+  const v = new Vinted({ domaine: "www.vinted.fr" });
+  const appels = [];
+  v.requete = async (method, path, opts) => (appels.push({ method, path, body: opts?.body }), { status: 200, ok: true, json: {} });
+  await v.republierAnnule(333);
+  assert.deepEqual(appels, [{ method: "POST", path: "/api/v2/transactions/333/reupload", body: undefined }]);
+});

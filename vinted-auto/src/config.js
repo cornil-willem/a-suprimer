@@ -64,6 +64,10 @@ export const CONFIG_PAR_DEFAUT = {
     maxParPassage: 5,
   },
 
+  // Commande annulée par l'acheteur : l'article est remis en ligne tout seul (bouton « Republier »
+  // du message Vinted), même en mode Brouillon : ce n'est pas un message à quelqu'un.
+  republierAnnulees: true,
+
   // EXPÉRIMENTAL : routes Vinted pas encore vérifiées sur un vrai compte.
   negociation: {
     actif: false,

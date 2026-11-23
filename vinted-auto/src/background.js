@@ -182,6 +182,20 @@ async function passeMessages(config, { forcer = false } = {}) {
     suivi.vu = majVinted;
     etat.conversations[id] = suivi;
 
+    // Commande annulée : remise en ligne de l'article (bouton « Republier »). Un seul essai par transaction.
+    if (config.republierAnnulees && conv.article.aRepublier && conv.transactionId && suivi.republie !== conv.transactionId) {
+      suivi.republie = conv.transactionId;
+      try {
+        await v.republierAnnule(conv.transactionId);
+        await journal(`Remis en ligne après annulation : "${conv.article.titre}"`);
+        notifier("Article remis en ligne", `"${conv.article.titre}" (commande annulée par ${conv.acheteur})`);
+      } catch (e) {
+        await journal(`Remise en ligne de "${conv.article.titre}" ratée : ${e.message}`, "erreur");
+        notifier("Remise en ligne ratée", `"${conv.article.titre}" : clique sur Republier dans la conversation`);
+      }
+      await pause(aleatoire(2000, 5000));
+    }
+
     if (!dernier || dernier.de !== "acheteur" || suivi.dernierTraite === dernier.id) continue;
 
     // Délai humain avant de répondre.
