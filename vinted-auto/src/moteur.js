@@ -26,7 +26,7 @@ export async function produireReponse(config, conv, fiche, deps) {
   // Article vendu à quelqu'un d'autre ou supprimé : « désolée, il est plus dispo » une seule fois,
   // puis plus aucune réponse dans cette conversation. L'acheteur, lui, n'est pas concerné
   // (pour lui l'article n'est pas « indisponible », il l'a acheté).
-  if (conv.article?.indisponible) return { ...reponsePlusDispo(conv), source: "modeles" };
+  if (conv.article?.indisponible) return { ...reponsePlusDispo(conv, config), source: "modeles" };
   if (config.moteur === "claude") {
     const r = await deps.genererClaude(config, { annonce: await deps.lireAnnonce(), messages: conv.messages, fiche });
     return { ...r, source: "claude" };

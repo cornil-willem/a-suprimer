@@ -1,5 +1,5 @@
 // Réglages par défaut. Tout est modifiable dans la page Options de l'extension.
-import { PERSONNALITE_PAR_DEFAUT } from "./personnalite.js";
+import { PERSONNALITE_PAR_DEFAUT, personnaliteDe } from "./personnalite.js";
 
 export const CONFIG_PAR_DEFAUT = {
   // Interrupteur général : rien ne tourne tant que c'est false.
@@ -43,6 +43,9 @@ export const CONFIG_PAR_DEFAUT = {
   effort: "low",
 
   // Compte Vinted
+  // Qui écrit sur ce compte : "julie" ou "willem". Chaque Chrome a le sien, choisi dans le popup.
+  // Vide : rien ne tourne tant qu'il n'est pas choisi (nouvelle installation).
+  vendeur: "",
   domaine: "www.vinted.fr",
   pseudo: "",
   // Laisse vide : l'extension lit ton ID dans le cookie v_uid.
@@ -119,7 +122,7 @@ export function appliquerReglagesPc(stockee, reglages = {}) {
   const config = fusionnerConfig(stockee);
   for (const cle of CLES_REGLAGES_PC) {
     if (!(cle in reglages)) continue;
-    const valeur = cle === "personnalite" && reglages[cle] === "defaut" ? CONFIG_PAR_DEFAUT.personnalite : reglages[cle];
+    const valeur = cle === "personnalite" && reglages[cle] === "defaut" ? personnaliteDe(config.vendeur) : reglages[cle];
     const [groupe, sous] = cle.split(".");
     if (sous) config[groupe] = { ...config[groupe], [sous]: valeur };
     else config[groupe] = valeur;
@@ -139,5 +142,8 @@ export function fusionnerConfig(stockee) {
     }
     return out;
   };
-  return fusion(CONFIG_PAR_DEFAUT, stockee || {});
+  const config = fusion(CONFIG_PAR_DEFAUT, stockee || {});
+  // Config d'avant le réglage « vendeur » : c'était forcément le compte de Julie.
+  if (stockee && !("vendeur" in stockee)) config.vendeur = "julie";
+  return config;
 }

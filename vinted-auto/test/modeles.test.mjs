@@ -216,3 +216,24 @@ test("carte dite fausse dans une autre langue : la main à l'humain", () => {
     assert.deepEqual([r.regles, r.besoin_humain], [["fausses"], true], q);
   }
 });
+
+test("compte de Willem : pas l'histoire de Julie, réponses au masculin", async () => {
+  const { reponsePlusDispo } = await import("../src/modeles.js");
+  const willem = (...lignes) => repondreAvecModeles(conv(...lignes), { vendeur: "willem", modeles: { delaiEnvoi: "" } });
+  for (const q of ["c'est des vraies ?", "tu les as eu où ?", "pourquoi si peu cher ?", "elles sont holo ?"]) {
+    const r = willem(q);
+    assert.equal(r.reponse, "", q);
+    assert.ok(r.inconnue, `${q} : doit passer à l'IA`);
+  }
+  const fausse = willem("elles sont fausses");
+  assert.deepEqual(fausse.regles, ["fausses"]);
+  assert.equal(fausse.reponse, "");
+  assert.ok(fausse.besoin_humain);
+  for (let i = 0; i < 20; i++) {
+    assert.doesNotMatch(willem("tu as un numéro whatsapp ?").reponse, /désolée/);
+    assert.doesNotMatch(reponsePlusDispo(conv("dispo ?"), { vendeur: "willem" }).reponse, /désolée/);
+  }
+  assert.match(willem("toujours dispo ?").reponse, /dispo/);
+  // Julie : inchangé.
+  assert.match(repondre("c'est des vraies ?").reponse, /frère/);
+});

@@ -1,5 +1,6 @@
 // Service worker de l'extension : planifie et exécute les tâches.
 import { CONFIG_PAR_DEFAUT, fusionnerConfig, appliquerReglagesPc } from "./config.js";
+import { personnaliteDe } from "./personnalite.js";
 import { Vinted, normaliserConversation, decrireArticle, hoteApi, likesDepuisNotifications, autresInteresses } from "./vinted.js";
 import { genererReponse, expliquerErreurClaude } from "./claude.js";
 import { genererReponseLocale } from "./local.js";
@@ -104,6 +105,8 @@ async function programmerAlarmes() {
 }
 
 // extension/reglages-pc.json : appliqué une fois par contenu (une modif dans les Options reste ensuite).
+// Avec "personnalite": "defaut", il est réappliqué aussi quand la personnalité par défaut du compte change
+// (nouvelle version, ou autre compte choisi dans le popup).
 async function lireReglagesPc() {
   let texte;
   try {
@@ -114,9 +117,11 @@ async function lireReglagesPc() {
     return; // pas de fichier : rien à faire
   }
   const { config, reglagesPc } = await chrome.storage.local.get(["config", "reglagesPc"]);
-  if (reglagesPc === texte) return;
+  const signature = `${texte}
+${personnaliteDe(fusionnerConfig(config).vendeur)}`;
+  if (reglagesPc === signature) return;
   try {
-    await chrome.storage.local.set({ config: appliquerReglagesPc(config, JSON.parse(texte)), reglagesPc: texte });
+    await chrome.storage.local.set({ config: appliquerReglagesPc(config, JSON.parse(texte)), reglagesPc: signature });
     await journal("Réglages du PC appliqués (reglages-pc.json)");
   } catch (e) {
     await journal(`reglages-pc.json illisible : ${e.message}`, "erreur");
@@ -136,7 +141,8 @@ chrome.storage.onChanged.addListener((changes) => {
 
 chrome.alarms.onAlarm.addListener(async (alarme) => {
   const config = await lireConfig();
-  if (!config.actif || !dansPlageHoraire(config)) return;
+  // Compte pas choisi dans le popup : on ne sait pas au nom de qui écrire.
+  if (!config.actif || !config.vendeur || !dansPlageHoraire(config)) return;
   if (alarme.name === "messages" && config.messages.actif) {
     await exclusif("Messages", () => passeMessages(config));
   }
@@ -532,6 +538,10 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
     const config = await lireConfig();
     switch (msg.type) {
       case "lancer":
+        if (!config.vendeur) {
+          await journal("Choisis d'abord le compte (Julie ou Willem) en haut du popup", "erreur");
+          return { ok: false };
+        }
         return exclusif("Lancement manuel", async () => {
           const r = await passeMessages(config, { forcer: true });
           // Likes aussi, sans attendre la prochaine alarme (brouillons par défaut).
@@ -581,7 +591,16 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
         return { ok: true };
       }
       case "personnaliteDefaut":
-        return { texte: CONFIG_PAR_DEFAUT.personnalite };
+        return { texte: personnaliteDe(config.vendeur) };
+      case "choisirVendeur": {
+        if (!["julie", "willem"].includes(msg.vendeur)) return { ok: false, raison: "compte inconnu" };
+        const { config: stockee } = await chrome.storage.local.get("config");
+        const nouvelle = { ...fusionnerConfig(stockee), vendeur: msg.vendeur, personnalite: personnaliteDe(msg.vendeur) };
+        await chrome.storage.local.set({ config: nouvelle });
+        await lireReglagesPc();
+        await journal(`Compte choisi : ${msg.vendeur === "julie" ? "Julie" : "Willem"} (personnalité changée)`);
+        return { ok: true };
+      }
       case "config":
         return config;
       default:

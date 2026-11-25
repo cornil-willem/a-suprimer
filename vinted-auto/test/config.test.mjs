@@ -27,3 +27,14 @@ test("réglages du PC : seulement les clés autorisées", () => {
   assert.equal(c.offresLikes.message, true);
   assert.deepEqual([c.actif, c.mode, c.apiKey, c.local.envoiAuto, c.offresLikes.envoiAuto], [false, "brouillon", "", false, false]);
 });
+test("compte (vendeur) : ancienne config = Julie, nouvelle installation = à choisir, personnalité par compte", async () => {
+  const { fusionnerConfig } = await import("../src/config.js");
+  const { PERSONNALITE_WILLEM, PERSONNALITE_JULIE } = await import("../src/personnalite.js");
+  assert.equal(fusionnerConfig({ actif: true }).vendeur, "julie");
+  assert.equal(fusionnerConfig(undefined).vendeur, "");
+  assert.equal(fusionnerConfig({ vendeur: "willem" }).vendeur, "willem");
+  assert.equal(appliquerReglagesPc({ vendeur: "willem" }, { personnalite: "defaut" }).personnalite, PERSONNALITE_WILLEM);
+  assert.equal(appliquerReglagesPc({ actif: false }, { personnalite: "defaut" }).personnalite, PERSONNALITE_JULIE);
+  assert.match(PERSONNALITE_WILLEM, /au masculin/);
+  assert.doesNotMatch(PERSONNALITE_WILLEM, /frère|étudiante|Julie/);
+});

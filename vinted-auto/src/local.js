@@ -85,5 +85,8 @@ async function appeler(config, systeme, contenu) {
 export async function genererReponseLocale(config, { annonce, messages, fiche }) {
   const systeme = construireSysteme(config.personnalite, config);
   const base = construireContenu({ annonce, messages, fiche });
-  return avecFiltreAntiIA((contenu) => appeler(config, systeme, contenu), base, { forme: formeAcheteur(messages) });
+  return avecFiltreAntiIA((contenu) => appeler(config, systeme, contenu), base, {
+    forme: formeAcheteur(messages),
+    feminin: config.vendeur !== "willem",
+  });
 }

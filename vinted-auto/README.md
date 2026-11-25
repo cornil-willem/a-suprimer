@@ -71,7 +71,18 @@ Plutôt que de remplir les Options à la main, tu peux écrire un fichier `exten
 }
 ```
 
-`"personnalite": "defaut"` remet la personnalité par défaut. Seules ces clés sont lues (plus `local.url`). « Activé », le mode Auto, la clé API et l'envoi sans validation restent des choix à faire à la main.
+`"personnalite": "defaut"` met la personnalité par défaut du compte choisi (Julie ou Willem). Elle est remise à jour quand une nouvelle version la change, ou quand tu changes de compte. Seules ces clés sont lues (plus `local.url`). « Activé », le mode Auto, la clé API et l'envoi sans validation restent des choix à faire à la main.
+
+### Deux comptes Vinted (un par Chrome)
+
+Chaque profil Chrome a ses propres réglages, brouillons et journal, et l'extension utilise le compte Vinted connecté dans ce Chrome. Pour un 2e compte :
+
+1. Dans l'autre Chrome, connecte-toi sur vinted.fr avec le 2e compte.
+2. Ouvre `chrome://extensions`, active le mode développeur, clique sur « Charger l'extension non empaquetée » et choisis le même dossier `extension`.
+3. Ouvre le popup et choisis à qui est le compte : Julie ou Willem. Tant que ce n'est pas choisi, rien ne tourne. Clique sur le nom à côté du titre pour changer.
+
+Le compte de Willem écrit au masculin et ne raconte pas l'histoire de Julie (grand frère, études, « j'y connais rien »). « C'est des vraies ? », « tu les as eues où ? » et « pourquoi si peu cher ? » te reviennent donc en brouillon. Les deux Chrome partagent la même IA locale : si les deux reçoivent un message en même temps, l'un attend l'autre.
+
 
 ## Ce que fait chaque module
 

@@ -48,7 +48,7 @@ le ton d'un message tapé vite sur un téléphone.`;
 
 // ---------- Nettoyage typographique automatique ----------
 // Ces défauts sont corrigés sans demander de réécriture à Claude.
-export function nettoyerTypo(texte) {
+export function nettoyerTypo(texte, { feminin = true } = {}) {
   return (texte || "")
     .replace(/[   ]/g, " ")
     .replace(/[’‘ʼ]/g, "'")
@@ -61,8 +61,9 @@ export function nettoyerTypo(texte) {
     .replace(/^#+\s*/gm, "")
     .replace(/[ \t]+/g, " ")
     .replace(/ ,/g, ",")
-    // Le compte est celui de Julie : « désolé » parle toujours d'elle (vu avec gemma3:12b le 2026-11-23).
-    .replace(/(^|[^\p{L}])([dD]ésolé)(?!\p{L})/gu, "$1$2e")
+    // « désolé » parle toujours de la personne du compte (vu avec gemma3:12b le 2026-11-23) :
+    // au féminin pour Julie, au masculin pour Willem.
+    .replace(feminin ? /(^|[^\p{L}])([dD]ésolé)(?!\p{L})/gu : /(^|[^\p{L}])([dD]ésolé)e(?!\p{L})/gu, feminin ? "$1$2e" : "$1$2")
     .trim();
 }
 
@@ -132,8 +133,8 @@ export function sansAccents(texte) {
  * Contrôle une réponse. Renvoie le texte nettoyé et la liste des problèmes.
  * @returns {{texte: string, ok: boolean, problemes: {regle: string, extrait: string}[]}}
  */
-export function verifierTexte(brut, { longueurMax = 280, phrasesMax = 3, forme = null } = {}) {
-  const texte = nettoyerTypo(brut);
+export function verifierTexte(brut, { longueurMax = 280, phrasesMax = 3, forme = null, feminin = true } = {}) {
+  const texte = nettoyerTypo(brut, { feminin });
   const plat = sansAccents(texte);
   const problemes = [];
 

@@ -56,7 +56,10 @@ export async function genererReponse(config, { annonce, messages, fiche }) {
   const client = new Anthropic({ apiKey: config.apiKey, dangerouslyAllowBrowser: true });
   const systeme = construireSysteme(config.personnalite, config);
   const base = construireContenu({ annonce, messages, fiche });
-  return avecFiltreAntiIA((contenu) => appeler(client, config, systeme, contenu), base, { forme: formeAcheteur(messages) });
+  return avecFiltreAntiIA((contenu) => appeler(client, config, systeme, contenu), base, {
+    forme: formeAcheteur(messages),
+    feminin: config.vendeur !== "willem",
+  });
 }
 
 // Message d'erreur lisible pour le journal.

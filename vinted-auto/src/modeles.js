@@ -18,6 +18,7 @@ const REGLES_HUMAIN = [
   {
     id: "fausses",
     raison: "carte signalée fausse",
+    histoire: true,
     // Aussi en italien, anglais, espagnol : « sembrano false » (vu le 2026-11-23), « fake », « falsas ».
     motif: /(c'?est (des )?(faux|fausses?|fakes?)|sont (des )?fausses|contrefa|pas des vraies|pas authentique|\bfakes?\b|\bfals[eioa]s?\b)/,
     reponses: [
@@ -45,6 +46,7 @@ const REGLES = [
   },
   {
     id: "vraies",
+    histoire: true,
     motif: /\b(vraies?|vrais|authentiques?|originale?s?|originaux|officielles?)\b|pas des fausses/,
     reponses: [
       "pour moi oui, c'est mon grand frère qui les collectionnait donc j'imagine. après j'y connais rien, je les récupère juste chez lui",
@@ -54,6 +56,7 @@ const REGLES = [
   {
     // État, holo, édition, année, valeur : elle n'y connaît rien, rien n'est inventé.
     id: "details",
+    histoire: true,
     exclusPar: "photos",
     motif: /\b(annee|date de quand|de quelle epoque|editions?|1ere ed|premiere ed|holos?|holographiques?|reverse|rares?|rarete|etat|abimee?s?|(la|sa|leur|une) cote|valent|valeur|psa|gradee?s?|langue|en (francais|anglais|japonais)|japonaises?|serie|extension)\b/,
     reponses: [
@@ -80,6 +83,7 @@ const REGLES = [
   },
   {
     id: "provenance",
+    histoire: true,
     motif: /(ou (est-ce que |est ce que )?(tu|vous) (les )?(as|avez) (eu|trouve|recupere|achete)|ou (tu|vous) les (as|avez)|d'?ou (elles |ils )?vien|(eu|trouve|recupere|achete)e?s? ou\b|provenance)/,
     reponses: [
       "c'est mon grand frère, il collectionnait avant et des fois il me donne ses doubles",
@@ -88,6 +92,7 @@ const REGLES = [
   },
   {
     id: "prixBas",
+    histoire: true,
     motif: /(pourquoi|comment).{0,30}(pas cher|si peu|si bas|ce prix|petits? prix)|(pas cher|si peu cher|prix (si )?bas).{0,20}pourquoi/,
     reponses: [
       "je m'y connais pas trop et je les récupère chez mon frère, donc ça me dérange pas de les mettre pas cher",
@@ -97,6 +102,7 @@ const REGLES = [
   },
   {
     id: "besoinArgent",
+    histoire: true,
     motif: /pourquoi.{0,30}besoin|besoin d'?argent/,
     reponses: ["je suis étudiante, j'ai un appart à payer"],
   },
@@ -158,13 +164,19 @@ function reponseEnvoiAcheteur(envoi, config) {
 // Article plus disponible (vendu à quelqu'un d'autre ou supprimé) : un seul message, puis plus rien.
 const PLUS_DISPO = ["désolée, il est plus dispo", "désolée, l'article est plus disponible", "ah désolée il est plus dispo"];
 
-export function reponsePlusDispo(conv) {
+// Compte de Willem : au masculin.
+export function auMasculin(texte) {
+  return (texte || "").replace(/([dD]ésol)ée(?!\p{L})/gu, "$1é");
+}
+
+export function reponsePlusDispo(conv, config = {}) {
   const messages = conv.messages || [];
   const dejaDit = messages.some((m) => m.de === "moi" && /plus dispo|vendu|deja parti/.test(sansAccents(m.texte)));
   if (dejaDit) {
     return { reponse: "", besoin_humain: false, rien: true, raison: "article plus dispo, déjà dit", problemes: [], essais: 0, regles: ["indisponible"] };
   }
-  return { reponse: choisir(PLUS_DISPO, []), besoin_humain: false, raison: "", problemes: [], essais: 0, regles: ["indisponible"] };
+  const texte = choisir(PLUS_DISPO, []);
+  return { reponse: config.vendeur === "willem" ? auMasculin(texte) : texte, besoin_humain: false, raison: "", problemes: [], essais: 0, regles: ["indisponible"] };
 }
 
 // Premier message à quelqu'un qui a liké une annonce. Vouvoiement (premier contact).
@@ -249,7 +261,11 @@ export function repondreAvecModeles(conv, config = {}) {
   const dejaEnvoye = messages
     .filter((m) => m.de === "moi")
     .flatMap((m) => sansAccents(m.texte).replace(/^(bonjour|salut), /, "").split(". "));
-  const fin = (r) => ({ problemes: [], essais: 0, ...r });
+  // Compte de Willem : pas l'histoire de Julie (grand frère, études, « j'y connais rien »),
+  // ces questions passent à l'IA avec sa personnalité ; réponses au masculin.
+  const willem = config.vendeur === "willem";
+  const regles = willem ? REGLES.filter((r) => !r.histoire) : REGLES;
+  const fin = (r) => ({ problemes: [], essais: 0, ...r, reponse: willem ? auMasculin(r.reponse) : r.reponse });
 
   // L'acheteur de l'article demande où en est l'envoi : réponse d'après le statut Vinted.
   if (conv.article?.achete && ENVOI_ACHETEUR.test(q) && !REGLES_HUMAIN.some((r) => r.motif.test(q))) {
@@ -259,7 +275,7 @@ export function repondreAvecModeles(conv, config = {}) {
 
   const humain = REGLES_HUMAIN.find((r) => r.motif.test(q));
   if (humain) {
-    const texte = humain.reponses ? choisir(humain.reponses, dejaEnvoye) : "";
+    const texte = humain.reponses && !(willem && humain.histoire) ? choisir(humain.reponses, dejaEnvoye) : "";
     return fin({
       reponse: texte && vous ? vouvoyer(texte) : texte,
       besoin_humain: true,
@@ -268,12 +284,12 @@ export function repondreAvecModeles(conv, config = {}) {
     });
   }
 
-  const toutes = REGLES.filter((r) => r.motif.test(q));
+  const toutes = regles.filter((r) => r.motif.test(q));
   const trouvees = toutes.filter((r) => !toutes.some((a) => a.id === r.exclusPar)).slice(0, 2);
   // Un des messages n'est pas compris : pas de réponse partielle, on traite comme une question inconnue.
   const incompris = nouveaux.some((m) => {
     const t = sansAccents(m.texte);
-    return !RIEN.test(t) && !NEUTRE.test(t) && !REGLES.some((r) => r.motif.test(t));
+    return !RIEN.test(t) && !NEUTRE.test(t) && !regles.some((r) => r.motif.test(t));
   });
   if (!trouvees.length || incompris) {
     if (RIEN.test(q)) return fin({ reponse: "", besoin_humain: false, rien: true, raison: "pas besoin de répondre", regles: [] });

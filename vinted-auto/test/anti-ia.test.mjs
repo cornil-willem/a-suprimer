@@ -101,3 +101,9 @@ test("désolé au féminin (compte de Julie)", () => {
   assert.equal(nettoyerTypo("Désolé, il est vendu"), "Désolée, il est vendu");
   assert.equal(nettoyerTypo("désolée je passe que par Vinted"), "désolée je passe que par Vinted");
 });
+
+test("désolé/désolée selon le compte", () => {
+  assert.equal(nettoyerTypo("désolé il est vendu"), "désolée il est vendu");
+  assert.equal(nettoyerTypo("Désolée il est vendu", { feminin: false }), "Désolé il est vendu");
+  assert.equal(verifierTexte("non désolée", { feminin: false }).texte, "non désolé");
+});

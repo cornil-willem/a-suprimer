@@ -58,7 +58,7 @@ export function construireContenu({ annonce, messages, fiche }) {
  * Appelle le modèle, contrôle la réponse avec le filtre anti-IA et redemande une réécriture si besoin.
  * @param {(contenu: string) => Promise<{reponse: string, besoin_humain: boolean, raison: string, memo?: string}>} appeler
  */
-export async function avecFiltreAntiIA(appeler, base, { essaisMax = 3, forme = null } = {}) {
+export async function avecFiltreAntiIA(appeler, base, { essaisMax = 3, forme = null, feminin = true } = {}) {
   let contenu = base;
   let resultat = null;
   let controle = { texte: "", ok: true, problemes: [] };
@@ -66,7 +66,7 @@ export async function avecFiltreAntiIA(appeler, base, { essaisMax = 3, forme = n
   for (let essai = 1; essai <= essaisMax; essai++) {
     resultat = await appeler(contenu);
     if (!resultat.reponse) return { ...resultat, problemes: [], essais: essai };
-    controle = verifierTexte(resultat.reponse, { forme });
+    controle = verifierTexte(resultat.reponse, { forme, feminin });
     if (controle.ok) return { ...resultat, reponse: controle.texte, problemes: [], essais: essai };
     contenu = `${base}\n\nTon brouillon précédent était : "${controle.texte}"\nIl sonne comme une IA à cause de : ${decrireProblemes(controle.problemes)}.\nRéécris-le plus court et plus simple, comme un humain qui écrit un message normal, sans ces éléments.`;
   }

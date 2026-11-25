@@ -10,8 +10,16 @@
 </head>
 <body>
   <div class="ligne" style="justify-content: space-between;">
-    <h1>Vinted Auto</h1>
+    <h1>Vinted Auto <span id="vendeur" class="doux" title="Changer de compte" style="cursor: pointer; font-size: 0.7em;"></span></h1>
     <button id="options">Options</button>
+  </div>
+
+  <div id="choixVendeur" class="carte alerte" style="margin-top: 10px; display: none;">
+    <div>Ce Chrome, c'est le compte Vinted de qui ? Les réponses seront écrites à son nom.</div>
+    <div class="ligne" style="margin-top: 6px;">
+      <button class="principal" data-vendeur="julie">Julie</button>
+      <button class="principal" data-vendeur="willem">Willem</button>
+    </div>
   </div>
 
   <div class="carte" style="margin-top: 10px;">

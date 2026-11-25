@@ -86,8 +86,17 @@ function afficherJournal(journal = []) {
   if (!journal.length) zone.innerHTML = '<p class="doux">Rien pour l’instant.</p>';
 }
 
+// Ancienne config sans « vendeur » : c'était le compte de Julie (comme config.js fusionnerConfig).
+function vendeurDe(config) {
+  if ("vendeur" in config) return config.vendeur;
+  return Object.keys(config).length ? "julie" : "";
+}
+
 async function rafraichir() {
   const { config, etat } = await lire();
+  const vendeur = vendeurDe(config);
+  $("vendeur").textContent = vendeur ? `· ${vendeur === "willem" ? "Willem" : "Julie"}` : "";
+  if (!vendeur) $("choixVendeur").style.display = "block";
   $("actif").checked = Boolean(config.actif);
   $("mode").value = config.mode || "brouillon";
   const avert = [];
@@ -99,6 +108,16 @@ async function rafraichir() {
   afficherJournal(etat.journal);
 }
 
+$("vendeur").onclick = () => {
+  $("choixVendeur").style.display = "block";
+};
+for (const bouton of document.querySelectorAll("[data-vendeur]")) {
+  bouton.onclick = async () => {
+    const r = await envoyer({ type: "choisirVendeur", vendeur: bouton.dataset.vendeur });
+    if (r?.ok) $("choixVendeur").style.display = "none";
+    else alert(`Pas changé : ${r?.raison || "erreur"}`);
+  };
+}
 $("actif").onchange = (e) => majConfig({ actif: e.target.checked });
 $("mode").onchange = (e) => {
   if (e.target.value === "auto" && !confirm("Mode auto : les réponses seront envoyées sans que tu les relises. Continuer ?")) {
