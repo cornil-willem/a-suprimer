@@ -220,11 +220,18 @@ test("carte dite fausse dans une autre langue : la main à l'humain", () => {
 test("compte de Willem : pas l'histoire de Julie, réponses au masculin", async () => {
   const { reponsePlusDispo } = await import("../src/modeles.js");
   const willem = (...lignes) => repondreAvecModeles(conv(...lignes), { vendeur: "willem", modeles: { delaiEnvoi: "" } });
-  for (const q of ["c'est des vraies ?", "tu les as eu où ?", "pourquoi si peu cher ?", "elles sont holo ?"]) {
-    const r = willem(q);
-    assert.equal(r.reponse, "", q);
-    assert.ok(r.inconnue, `${q} : doit passer à l'IA`);
+  for (let i = 0; i < 10; i++) {
+    const vraies = willem("c'est des vraies ?").reponse;
+    assert.match(vraies, /grand frère/);
+    assert.match(vraies, /garantir/);
+    assert.doesNotMatch(vraies, /connais/);
+    assert.match(willem("tu les as eu où ?").reponse, /grand frère/);
+    assert.match(willem("pourquoi si peu cher ?").reponse, /grand frère|étudiant,/);
+    assert.equal(willem("pourquoi tu as besoin d'argent ?").reponse, "je suis étudiant");
   }
+  const holo = willem("elles sont holo ?");
+  assert.equal(holo.reponse, "");
+  assert.ok(holo.inconnue, "détails : « j'y connais rien » est à Julie, passe à l'IA");
   const fausse = willem("elles sont fausses");
   assert.deepEqual(fausse.regles, ["fausses"]);
   assert.equal(fausse.reponse, "");

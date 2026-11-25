@@ -52,6 +52,11 @@ const REGLES = [
       "pour moi oui, c'est mon grand frère qui les collectionnait donc j'imagine. après j'y connais rien, je les récupère juste chez lui",
       "pour moi oui, elles viennent de mon grand frère qui collectionnait avant. après je m'y connais pas du tout",
     ],
+    // Compte de Willem : même provenance, sans « j'y connais rien ».
+    willem: [
+      "pour moi oui, c'est mon grand frère qui les collectionnait donc j'imagine. après je peux rien garantir",
+      "pour moi oui, elles viennent de mon grand frère qui collectionnait avant. après je peux pas garantir",
+    ],
   },
   {
     // État, holo, édition, année, valeur : elle n'y connaît rien, rien n'est inventé.
@@ -89,6 +94,7 @@ const REGLES = [
       "c'est mon grand frère, il collectionnait avant et des fois il me donne ses doubles",
       "je les récupère chez mon grand frère, il collectionnait avant",
     ],
+    willem: ["je les récupère chez mon grand frère, il collectionnait avant", "c'est mon grand frère, il collectionnait avant"],
   },
   {
     id: "prixBas",
@@ -99,12 +105,17 @@ const REGLES = [
       "honnêtement je sais pas ce que ça vaut, pour moi c'est les cartes qu'on avait petits",
       "j'ai besoin d'un peu d'argent pour mes études, du coup je les mets pas cher",
     ],
+    willem: [
+      "je les récupère chez mon grand frère, donc ça me dérange pas de les mettre pas cher",
+      "je suis étudiant, ça me fait un peu d'argent",
+    ],
   },
   {
     id: "besoinArgent",
     histoire: true,
     motif: /pourquoi.{0,30}besoin|besoin d'?argent/,
     reponses: ["je suis étudiante, j'ai un appart à payer"],
+    willem: ["je suis étudiant"],
   },
   {
     id: "reserver",
@@ -261,10 +272,10 @@ export function repondreAvecModeles(conv, config = {}) {
   const dejaEnvoye = messages
     .filter((m) => m.de === "moi")
     .flatMap((m) => sansAccents(m.texte).replace(/^(bonjour|salut), /, "").split(". "));
-  // Compte de Willem : pas l'histoire de Julie (grand frère, études, « j'y connais rien »),
-  // ces questions passent à l'IA avec sa personnalité ; réponses au masculin.
+  // Compte de Willem : ses propres phrases (champ willem) quand la règle raconte l'histoire du compte.
+  // Sans version Willem (ex. « j'y connais rien »), la question passe à l'IA. Réponses au masculin.
   const willem = config.vendeur === "willem";
-  const regles = willem ? REGLES.filter((r) => !r.histoire) : REGLES;
+  const regles = willem ? REGLES.filter((r) => !r.histoire || r.willem) : REGLES;
   const fin = (r) => ({ problemes: [], essais: 0, ...r, reponse: willem ? auMasculin(r.reponse) : r.reponse });
 
   // L'acheteur de l'article demande où en est l'envoi : réponse d'après le statut Vinted.
@@ -297,7 +308,7 @@ export function repondreAvecModeles(conv, config = {}) {
   }
 
   const morceaux = trouvees.map((r) => {
-    const variantes = typeof r.reponses === "function" ? r.reponses(config, conv) : r.reponses;
+    const variantes = willem && r.willem ? r.willem : typeof r.reponses === "function" ? r.reponses(config, conv) : r.reponses;
     const texte = choisir(variantes, dejaEnvoye);
     return vous ? vouvoyer(texte) : texte;
   });

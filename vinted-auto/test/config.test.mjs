@@ -36,5 +36,7 @@ test("compte (vendeur) : ancienne config = Julie, nouvelle installation = à cho
   assert.equal(appliquerReglagesPc({ vendeur: "willem" }, { personnalite: "defaut" }).personnalite, PERSONNALITE_WILLEM);
   assert.equal(appliquerReglagesPc({ actif: false }, { personnalite: "defaut" }).personnalite, PERSONNALITE_JULIE);
   assert.match(PERSONNALITE_WILLEM, /au masculin/);
-  assert.doesNotMatch(PERSONNALITE_WILLEM, /frère|étudiante|Julie/);
+  assert.match(PERSONNALITE_WILLEM, /grand frère/);
+  assert.match(PERSONNALITE_WILLEM, /je suis étudiant"/);
+  assert.doesNotMatch(PERSONNALITE_WILLEM, /étudiante|Julie|j'y connais rien|appart/);
 });

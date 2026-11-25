@@ -81,7 +81,7 @@ Chaque profil Chrome a ses propres réglages, brouillons et journal, et l'extens
 2. Ouvre `chrome://extensions`, active le mode développeur, clique sur « Charger l'extension non empaquetée » et choisis le même dossier `extension`.
 3. Ouvre le popup et choisis à qui est le compte : Julie ou Willem. Tant que ce n'est pas choisi, rien ne tourne. Clique sur le nom à côté du titre pour changer.
 
-Le compte de Willem écrit au masculin et ne raconte pas l'histoire de Julie (grand frère, études, « j'y connais rien »). « C'est des vraies ? », « tu les as eues où ? » et « pourquoi si peu cher ? » te reviennent donc en brouillon. Les deux Chrome partagent la même IA locale : si les deux reçoivent un message en même temps, l'un attend l'autre.
+Le compte de Willem écrit au masculin. Les cartes viennent aussi de son grand frère et il est étudiant, mais il ne dit pas « j'y connais rien » : à « c'est des vraies ? », il répond « pour moi oui, c'est mon grand frère qui les collectionnait donc j'imagine. après je peux rien garantir ». Les questions sur l'état ou la rareté passent à l'IA. Les deux Chrome partagent la même IA locale : si les deux reçoivent un message en même temps, l'un attend l'autre.
 
 
 ## Ce que fait chaque module
